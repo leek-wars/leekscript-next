@@ -60,7 +60,7 @@ public:
 			std::cout << oss.str();
 		} else {
 			oss << C_RED << "FAIL " << END_COLOR << ": " << label;
-			oss << "  =/=>  " << expected << "  got  " << value << std::endl;
+			oss << "  =/=>  " << expected << "  got  " << value;
 			std::cout << oss.str();
 			failed_tests.push_back(oss.str());
 		}
