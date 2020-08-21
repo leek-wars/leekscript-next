@@ -1,4 +1,6 @@
 #include <chrono>
+#include <fstream>
+#include <istream>
 #include "Program.hpp"
 #include "Context.hpp"
 #include "../analyzer/lexical/LexicalAnalyzer.hpp"
@@ -109,6 +111,28 @@ Hover Program::hover(SemanticAnalyzer& analyzer, File* file, size_t position) {
 }
 
 #if COMPILER
+
+void format_ir_comments(Program* program, const std::string& ll_file_name) {
+	auto lines = Util::read_file_lines(ll_file_name);
+	std::string result;
+	for (const auto& line : lines) {
+		// std::cout << "line = " << line << std::endl;
+		if (line.find("call void @System.comment.0") != std::string::npos) {
+			size_t end = line.find(")");
+			auto comment = line.substr(34, end - 34).c_str();
+			int comment_id = std::atoi(comment);
+			// std::cout << "comment id = " << comment << " => " << comment_id << std::endl;
+			result += "  ; " + program->comments[comment_id] +  "\n";
+		} else {
+			result += line + "\n";
+		}
+	}
+	std::ofstream myfile;
+	myfile.open(ll_file_name);
+	myfile << result;
+	myfile.close();
+}
+
 void Program::compile_leekscript(Compiler& c, bool format, bool debug, bool bitcode, bool pseudo_code, bool optimized_ir) {
 
 	if (result.errors.size()) {
@@ -129,9 +153,11 @@ void Program::compile_leekscript(Compiler& c, bool format, bool debug, bool bitc
 
 	if (pseudo_code) {
 		std::error_code EC2;
-		llvm::raw_fd_ostream ir(file_name + ".ll", EC2, llvm::sys::fs::F_None);
+		auto ll_file_name = file_name + ".ll";
+		llvm::raw_fd_ostream ir(ll_file_name, EC2, llvm::sys::fs::F_None);
 		module->print(ir, nullptr);
 		ir.flush();
+		format_ir_comments(this, ll_file_name);
 	}
 
 	auto compilation_start = std::chrono::high_resolution_clock::now();

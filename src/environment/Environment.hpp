@@ -155,7 +155,7 @@ public:
 	/**
 	 * Execute a `Program`.
 	 */
-	void execute(Program& program, bool format = false, bool debug = false, bool ops = true, bool assembly = false, bool pseudo_code = false, bool optimized_ir = false, bool execute_ir = false, bool execute_bitcode = false);
+	void execute(Program& program, bool format = false, bool debug = false, bool ops = true, bool assembly = false, bool pseudo_code = false, bool optimized_ir = false);
 	#endif
 
 	const Type* template_(std::string name);

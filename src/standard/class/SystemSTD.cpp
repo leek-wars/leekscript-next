@@ -73,6 +73,10 @@ SystemSTD::SystemSTD(Environment& env) : Module(env, "System") {
 		{env.void_, {env.i8->pointer(), env.const_any}, ADDR((void*) internal_print)},
 	}, PRIVATE | LEGACY);
 
+	method("comment", {
+		{env.void_, {env.i8->pointer()}, ADDR((void*) comment)},
+	}, PRIVATE | LEGACY);
+
 	/**
 	 * Legacy-only
 	 */
@@ -209,6 +213,10 @@ void SystemSTD::delete_exception(vm::ExceptionObj* exception) {
 	// delete exception;
 	// delete &exception->frames;
 	exception->frames.~vector();
+}
+
+void SystemSTD::comment(void*) {
+	// Nothing
 }
 
 #endif

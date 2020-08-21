@@ -43,6 +43,7 @@ public:
 	bool handle_created = false;
 	llvm::Module* module = nullptr;
 	llvm::orc::VModuleKey module_handle;
+	std::vector<std::string> comments;
 	#endif
 
 	Program(Environment& env, const std::string& code, const std::string& file_name);

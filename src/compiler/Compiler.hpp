@@ -328,6 +328,7 @@ public:
 	bool check_value_not_void(value) const;
 	void increment_mpz_created();
 	void increment_mpz_deleted();
+	void comment(std::string comment);
 };
 
 }

@@ -2441,6 +2441,13 @@ void Compiler::increment_mpz_deleted() {
 	insn_store(mpz, insn_add(v, new_integer(1)));
 }
 
+void Compiler::comment(std::string comment) {
+
+	int comment_id = program->comments.size();
+	program->comments.push_back(comment);
+	insn_call(env.void_, { new_integer(comment_id) }, "System.comment");
+}
+
 }
 
 namespace std {

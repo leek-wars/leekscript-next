@@ -156,6 +156,7 @@ Compiler::value VariableDeclaration::compile(Compiler& c) const {
 			if (dynamic_cast<Function*>(ex.get()) and not ex->type->is_closure()) {
 				continue;
 			}
+			c.comment("Declare variable " + variable->name);
 			auto val = ex->compile(c);
 			if (!val.t->reference) {
 				val = c.insn_move_inc(val);

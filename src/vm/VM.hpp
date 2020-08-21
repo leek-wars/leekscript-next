@@ -61,7 +61,7 @@ public:
 	VM(Environment& env, StandardLibrary& std);
 	~VM();
 
-	void execute(Program& program, bool format = false, bool debug = false, bool ops = true, bool assembly = false, bool pseudo_code = false, bool optimized_ir = false, bool execute_ir = false, bool execute_bitcode = false);
+	void execute(Program& program, bool format = false, bool debug = false, bool ops = true, bool assembly = false, bool pseudo_code = false);
 
 	/** Add a module **/
 	void add_module(std::unique_ptr<Module> m);

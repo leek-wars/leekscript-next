@@ -281,6 +281,10 @@ Compiler::value Block::compile(Compiler& c) const {
 			auto last_instruction = (last_section and i == section->instructions.size() - 1) or (pre_last_section and sections.back()->instructions.size() == 0 and i == section->instructions.size() - 1);
 			// std::cout << "last = " << std::boolalpha << last_instruction << std::endl;
 
+			std::ostringstream oss;
+			instructions[i]->print(oss, 0, { false, true, false });
+			c.comment(oss.str());
+
 			auto val = section->instructions[i]->compile(c);
 
 			if (instructions[i]->breaking) {

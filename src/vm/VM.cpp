@@ -55,7 +55,7 @@ void VM::static_init() {
 }
 
 #if COMPILER
-void VM::execute(Program& program, bool format, bool debug, bool ops, bool assembly, bool pseudo_code, bool optimized_ir, bool execute_ir, bool execute_bitcode) {
+void VM::execute(Program& program, bool format, bool debug, bool ops, bool assembly, bool pseudo_code) {
 
 	// Reset
 	LSValue::obj_count = 0;

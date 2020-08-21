@@ -207,6 +207,7 @@ Compiler::value Section::compile(Compiler& c) const {
 		} else {
 			auto phi_type = phi->variable->type->is_mpz_ptr() ? env.mpz : phi->variable->type;
 			phi->variable->entry = c.create_entry(phi->variable->name, phi_type);
+			c.comment("Store phi : " + phi->variable->name);
 			c.insn_store(phi->variable->entry, phi->phi_node);
 		}
 	}
@@ -228,6 +229,7 @@ void Section::compile_end(Compiler& c) const {
 				const auto& var1 = phi->variable1;
 				// std::cout << "Block export value1 " << var1 << " " << var1->type << " " << var1->val.t << " convert to " << phi->variable->type << std::endl;
 				if (var1->entry.v) {
+					c.comment("Export value 1 : " + var1->name + "." + std::to_string(var1->id) + " " + var1->type->getName());
 					// TODO : normalement pas besoin de faire une condition ici
 					if (var1->type != phi->variable->type) {
 						phi->value1 = c.insn_convert(var1->get_value(c), phi->variable->type, true);

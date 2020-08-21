@@ -132,7 +132,7 @@ void Environment::compile(Program& program, bool format, bool debug, bool ops, b
 	program.compile(compiler, format, debug, assembly, pseudo_code, optimized_ir, execute_ir, execute_bitcode);
 }
 
-void Environment::execute(Program& program, bool format, bool debug, bool ops, bool assembly, bool pseudo_code, bool optimized_ir, bool execute_ir, bool execute_bitcode) {
+void Environment::execute(Program& program, bool format, bool debug, bool ops, bool assembly, bool pseudo_code, bool optimized_ir) {
 	if (output) {
 		vm.output = output;
 	}
@@ -140,7 +140,7 @@ void Environment::execute(Program& program, bool format, bool debug, bool ops, b
 	if (operation_limit != -1) {
 		vm.operation_limit = operation_limit;
 	}
-	vm.execute(program, format, debug, ops, assembly, pseudo_code, optimized_ir, execute_ir, execute_bitcode);
+	vm.execute(program, format, debug, ops, assembly, pseudo_code);
 }
 
 #endif

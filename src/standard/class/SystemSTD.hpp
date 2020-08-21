@@ -39,6 +39,8 @@ public:
 
 	static void v1_debug(LSValue* v);
 
+	static void comment(void*);
+
 	#endif
 };
 

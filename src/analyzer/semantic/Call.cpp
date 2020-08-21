@@ -60,6 +60,7 @@ Compiler::value Call::pre_compile_call(Compiler& c) const {
 Compiler::value Call::compile_call(Compiler& c, const CallableVersion& version, std::vector<Compiler::value> args, int flags) const {
 	// std::cout << "Call::compile_call(" << args << ")" << std::endl;
 	// Do the call
+	// c.comment("Function call " + version.type->getName());
 	auto r = version.compile_call(c, args, value, flags);
 	if (object) {
 		object->compile_end(c);
