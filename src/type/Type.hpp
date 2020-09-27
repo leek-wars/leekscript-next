@@ -76,8 +76,8 @@ public:
 	bool strictCastable(const Type* type) const;
 	virtual int distance(const Type* type) const = 0;
 
-	const Type* operator + (const Type* type) const;
-	void operator += (const Type* type);
+	const Type* operator | (const Type* type) const;
+	void operator |= (const Type* type);
 	const Type* operator * (const Type* t2) const;
 	const Type* concat(const Type* type) const;
 	const Type* fold() const;
@@ -150,6 +150,7 @@ public:
 	static const Type* compound(std::initializer_list<const Type*> types);
 	static const Type* tmp_compound(std::initializer_list<const Type*> types);
 
+	static const Type* meta_or(const Type* t1, const Type* t2);
 	static const Type* meta_add(const Type* t1, const Type* t2);
 	static const Type* meta_concat(const Type* t1, const Type* t2);
 	static const Type* meta_mul(const Type* t1, const Type* t2);

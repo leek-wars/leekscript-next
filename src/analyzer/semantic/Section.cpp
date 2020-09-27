@@ -165,7 +165,7 @@ void Section::analyze(SemanticAnalyzer* analyzer) {
 	// std::cout << "Section::analyze " << color << id << END_COLOR << std::endl;
 	for (const auto& phi : phis) {
 		// std::cout << "Section phi analyze " << phi->variable1 << " + " << (phi->variable2) << std::endl;
-		phi->variable->type = phi->variable1->type->operator + (phi->variable2->type);
+		phi->variable->type = phi->variable1->type->operator | (phi->variable2->type);
 		// std::cout << "Section phi " << phi->variable << " " << (void*) phi->variable << " analyze " << phi->variable1->type << " + " << (phi->variable2->type) << " = " << phi->variable->type << std::endl;
 	}
 }

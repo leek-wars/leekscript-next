@@ -163,7 +163,7 @@ void Block::analyze(SemanticAnalyzer* analyzer) {
 			}
 			if (instruction->may_return) may_return = true;
 			if (instruction->throws) throws = true;
-			return_type = return_type->operator + (instruction->return_type);
+			return_type = return_type->operator | (instruction->return_type);
 			if (instruction->returning) {
 				returning = true;
 				break; // no need to analyze after a return

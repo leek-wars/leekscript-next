@@ -160,7 +160,7 @@ void FunctionVersion::analyze(SemanticAnalyzer* analyzer, const std::vector<cons
 	if (auto c = dynamic_cast<const Compound_type*>(body->type)) {
 		for (const auto& t : c->types) {
 			if (t != placeholder_type) {
-				return_type = return_type->operator + (t);
+				return_type = return_type->operator | (t);
 			}
 		}
 	} else {
@@ -169,11 +169,11 @@ void FunctionVersion::analyze(SemanticAnalyzer* analyzer, const std::vector<cons
 	if (auto c = dynamic_cast<const Compound_type*>(body->return_type)) {
 		for (const auto& t : c->types) {
 			if (t != placeholder_type) {
-				return_type = return_type->operator + (t);
+				return_type = return_type->operator | (t);
 			}
 		}
 	} else {
-		return_type = return_type->operator + (body->return_type);
+		return_type = return_type->operator | (body->return_type);
 	}
 	// std::cout << "body->type " << body->type << std::endl;
 	// std::cout << "body->return_type " << body->return_type << std::endl;

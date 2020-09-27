@@ -399,7 +399,7 @@ Compiler::value MapSTD::look(Compiler& c, std::vector<Compiler::value> args, int
 		if (map.t->element()->is_real()) return "Map.look_fun.1";
 		return "Map.look_fun";
 	}();
-	auto return_type = v.t->not_temporary()->operator + (map.t->element());
+	auto return_type = v.t->not_temporary()->operator | (map.t->element());
 	auto key = c.insn_convert(args[1], map.t->key());
 	auto value = c.insn_convert(v, return_type);
 	return c.insn_convert(c.insn_call(return_type, {args[0], key, value}, f), return_type);

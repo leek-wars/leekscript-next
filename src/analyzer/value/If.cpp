@@ -77,19 +77,19 @@ void If::analyze(SemanticAnalyzer* analyzer) {
 		if (type->is_void() and not elze->type->is_void() and not then->returning) {
 			type = env.null;
 		} else if (type != env.void_ and elze->type == env.void_) {
-			type = type->operator + (env.null);
+			type = type->operator | (env.null);
 		} else {
-			type = type->operator + (elze->type);
+			type = type->operator | (elze->type);
 		}
 	} else if (not type->is_void() or then->returning) {
-		type = type->operator + (env.null);
+		type = type->operator | (env.null);
 	}
 	if (is_void) type = env.void_;
 	throws |= then->throws or (elze != nullptr and elze->throws);
 	returning = then->returning and (elze != nullptr and elze->returning);
 	may_return = then->may_return or (elze != nullptr and elze->may_return);
 	return_type = then->return_type;
-	if (elze != nullptr) return_type = return_type->operator + (elze->return_type);
+	if (elze != nullptr) return_type = return_type->operator | (elze->return_type);
 }
 
 Hover If::hover(SemanticAnalyzer& analyzer, size_t position) const {

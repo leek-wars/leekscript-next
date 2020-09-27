@@ -131,7 +131,7 @@ bool Array::will_store(SemanticAnalyzer* analyzer, const Type* type) {
 	if (expressions.size() == 0) {
 		this->type = Type::tmp_array(added_type);
 	} else {
-		this->type = Type::tmp_array(current_type->operator + (added_type));
+		this->type = Type::tmp_array(current_type->operator | (added_type));
 	}
 
 	return false;

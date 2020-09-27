@@ -1,5 +1,6 @@
 #include "CallableVersion.hpp"
 #include "../../type/Template_type.hpp"
+#include "../../type/Meta_or_type.hpp"
 #include "../../type/Meta_add_type.hpp"
 #include "../../type/Meta_concat_type.hpp"
 #include "../../type/Meta_mul_type.hpp"
@@ -100,6 +101,9 @@ const Type* build(const Type* type) {
 		} else {
 			return t;
 		}
+	}
+	if (auto mul = dynamic_cast<const Meta_or_type*>(type)) {
+		return build(analyzer, mul->t1)->operator | (build(analyzer, mul->t2));
 	}
 	if (auto mul = dynamic_cast<const Meta_add_type*>(type)) {
 		return build(mul->t1)->operator + (build(mul->t2));

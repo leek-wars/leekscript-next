@@ -87,7 +87,7 @@ bool Type::must_manage_memory() const {
 	return is_polymorphic() and not native;
 }
 
-const Type* Type::operator + (const Type* type) const {
+const Type* Type::operator | (const Type* type) const {
 	if (is_void() or is_never()) return type;
 	if (type->is_void() or type->is_never()) return this;
 
@@ -581,6 +581,15 @@ const Type* Type::compound(std::vector<const Type*> types) {
 }
 const Type* Type::tmp_compound(std::initializer_list<const Type*> types) {
 	return compound(types)->add_temporary();
+}
+
+const Type* Type::meta_or(const Type* t1, const Type* t2) {
+	auto& env = t1->env;
+	auto i = env.meta_or_types.find({t1, t2});
+	if (i != env.meta_or_types.end()) return i->second.get();
+	auto type = new Meta_or_type(t1, t2);
+	env.meta_or_types.emplace(std::make_pair(t1, t2), type);
+	return type;
 }
 
 const Type* Type::meta_add(const Type* t1, const Type* t2) {

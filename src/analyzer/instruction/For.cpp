@@ -126,7 +126,7 @@ void For::analyze(SemanticAnalyzer* analyzer, const Type* req_type) {
 			if (ins->may_return) {
 				returning = ins->returning;
 				may_return = ins->may_return;
-				return_type = return_type->operator + (ins->return_type);
+				return_type = return_type->operator | (ins->return_type);
 			}
 			if (ins->returning) {
 				analyzer->leave_block();
@@ -149,7 +149,7 @@ void For::analyze(SemanticAnalyzer* analyzer, const Type* req_type) {
 	body->analyze(analyzer);
 	throws |= body->throws;
 	if (body->may_return) may_return = true;
-	return_type = return_type->operator + (body->return_type);
+	return_type = return_type->operator | (body->return_type);
 	if (req_type->is_array()) {
 		type = Type::array(body->type);
 	}
@@ -168,7 +168,7 @@ void For::analyze(SemanticAnalyzer* analyzer, const Type* req_type) {
 				throws |= ins->throws;
 				if (ins->may_return) {
 					may_return = ins->may_return;
-					return_type = return_type->operator + (ins->return_type);
+					return_type = return_type->operator | (ins->return_type);
 				}
 				if (ins->returning) { break; }
 			}
@@ -202,7 +202,7 @@ void For::analyze(SemanticAnalyzer* analyzer, const Type* req_type) {
 					throws |= ins->throws;
 					if (ins->may_return) {
 						may_return = ins->may_return;
-						return_type = return_type->operator + (ins->return_type);
+						return_type = return_type->operator | (ins->return_type);
 					}
 					if (ins->returning) { break; }
 				}
