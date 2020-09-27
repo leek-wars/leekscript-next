@@ -313,7 +313,7 @@ Compiler::value Expression::compile(Compiler& c) const {
 	}
 
 	if (op->type == TokenType::CATCH_ELSE) {
-		auto r = c.create_entry("r", type);
+		auto r = c.create_entry(type);
 		c.insn_try_catch([&]() {
 			auto v1_value = v1->compile(c);
 			if (v1_value.v) { // can be void

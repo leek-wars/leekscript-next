@@ -116,7 +116,7 @@ llvm::orc::VModuleKey Compiler::addModule(std::unique_ptr<llvm::Module> M, bool 
 	return K;
 }
 
-llvm::AllocaInst* Compiler::CreateEntryBlockAlloca(const std::string& VarName, llvm::Type* type) const {
+llvm::AllocaInst* Compiler::CreateEntryBlockAlloca(const std::string& VarName, llvm::Type* type) {
 	assert(F);
 	llvm::IRBuilder<> builder(&F->getEntryBlock(), F->getEntryBlock().begin());
 	return builder.CreateAlloca(type, nullptr, VarName);
@@ -157,7 +157,7 @@ Compiler::value Compiler::new_long(long l) {
 }
 
 Compiler::value Compiler::new_mpz() {
-	auto r = create_entry("m", env.tmp_mpz);
+	auto r = create_entry(env.tmp_mpz);
 	insn_call(env.void_, {r}, "Number.mpz_init");
 	increment_mpz_created();
 	return r;

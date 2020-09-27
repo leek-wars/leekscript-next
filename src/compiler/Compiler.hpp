@@ -132,7 +132,7 @@ public:
 	}
 
 	/// CreateEntryBlockAlloca - Create an alloca instruction in the entry block of the function.  This is used for mutable variables etc.
-	llvm::AllocaInst* CreateEntryBlockAlloca(const std::string& VarName, llvm::Type* type) const;
+	llvm::AllocaInst* CreateEntryBlockAlloca(const std::string& VarName, llvm::Type* type);
 
 	void init();
 	void end();
@@ -155,6 +155,7 @@ public:
 	value new_object();
 	value new_object_class(value clazz);
 	value new_set();
+	value create_entry(const Type* type);
 	value create_entry(const std::string& name, const Type* type);
 	value get_symbol(const std::string& name, const Type* type);
 	value get_vm();

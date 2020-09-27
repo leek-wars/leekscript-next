@@ -160,7 +160,7 @@ Compiler::value Number::compile(Compiler& c) const {
 	}
 	if (type == c.env.tmp_mpz_ptr) {
 		auto s = c.new_const_string(clean_value);
-		auto r = c.create_entry("m", c.env.tmp_mpz);
+		auto r = c.create_entry(c.env.tmp_mpz);
 		c.insn_call(c.env.void_, {r, s, c.new_integer(base)}, "Number.mpz_init_str");
 		c.increment_mpz_created();
 		return r;
