@@ -505,6 +505,7 @@ const Type* Type::fun(const Type* return_type, std::vector<const Type*> argument
 		return t->add_constant();
 	}
 }
+
 const Type* Type::fun_object(const Type* return_type, std::vector<const Type*> arguments, const Value* function) {
 	auto& env = return_type->env;
 	if (function == nullptr) {
@@ -520,6 +521,7 @@ const Type* Type::fun_object(const Type* return_type, std::vector<const Type*> a
 		return t->add_constant();
 	}
 }
+
 const Type* Type::closure(const Type* return_type, std::vector<const Type*> arguments, const Value* function) {
 	auto& env = return_type->env;
 	if (function == nullptr) {
@@ -535,20 +537,23 @@ const Type* Type::closure(const Type* return_type, std::vector<const Type*> argu
 		return t->add_constant();
 	}
 }
-const Type* Type::structure(const std::string name, std::initializer_list<const Type*> types) {
-	auto& env = (*types.begin())->env;
+
+const Type* Type::structure(Environment& env, const std::string name, std::vector<const Type*> types) {
 	auto i = env.structure_types.find(name);
 	if (i != env.structure_types.end()) return i->second.get();
-	auto type = new Struct_type(name, types);
+	auto type = new Struct_type(env, name, types);
 	env.structure_types.emplace(name, type);
 	return type;
 }
-const Type* Type::compound(std::initializer_list<const Type*> types) {
-	return Type::compound(std::vector<const Type*>(types));
+
+const Type* Type::compound(Environment& env, std::initializer_list<const Type*> types) {
+	return Type::compound(env, std::vector<const Type*>(types));
 }
-const Type* Type::compound(std::vector<const Type*> types) {
+
+const Type* Type::compound(Environment& env, std::vector<const Type*> types) {
+	if (types.size() == 0) return env.void_;
 	if (types.size() == 1) return *types.begin();
-	auto& env = types[0]->env;
+
 	std::set<const Type*> base;
 	auto folded = env.void_;
 	auto temporary = false;
@@ -579,8 +584,8 @@ const Type* Type::compound(std::vector<const Type*> types) {
 	}
 	return type;
 }
-const Type* Type::tmp_compound(std::initializer_list<const Type*> types) {
-	return compound(types)->add_temporary();
+const Type* Type::tmp_compound(Environment& env, std::initializer_list<const Type*> types) {
+	return compound(env, types)->add_temporary();
 }
 
 const Type* Type::meta_or(const Type* t1, const Type* t2) {

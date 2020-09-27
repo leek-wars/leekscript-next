@@ -7,7 +7,7 @@
 
 namespace ls {
 
-Interval_type::Interval_type(Environment& env) : Pointer_type(Type::structure("interval", {
+Interval_type::Interval_type(Environment& env) : Pointer_type(Type::structure(env, "interval", {
 	env.integer, // ?
 	env.integer, // ?
 	env.integer, // ?
@@ -24,7 +24,7 @@ const Type* Interval_type::element() const {
 	return env.integer;
 }
 const Type* Interval_type::iterator() const {
-	return Type::structure("interval_iterator", {
+	return Type::structure(env, "interval_iterator", {
 		env.interval, env.integer
 	});
 }

@@ -11,7 +11,10 @@
 
 namespace ls {
 
-Fixed_array_type::Fixed_array_type(const std::vector<const Type*>& elements) : Array_type(Type::compound(elements)), _elements(elements), _element(Type::compound(elements)) {
+Fixed_array_type::Fixed_array_type(Environment& env, std::vector<const Type*> elements)
+: Struct_type(env, "array[" + Type::vector_to_string(elements) + "]", elements), _elements(elements), _element(Type::compound(env, elements))
+{
+	// std::cout << "Fixed_array_type() " << elements << std::endl;
 }
 
 const Type* Fixed_array_type::key() const {
@@ -63,9 +66,11 @@ const Type* Fixed_array_type::iterator() const {
 	if (merged->is_real()) return env.real->pointer();
 	return env.any->pointer();
 }
+
 std::string Fixed_array_type::class_name() const {
 	return "Array";
 }
+
 const std::string Fixed_array_type::getName() const {
 	std::string name = "array[";
 	for (size_t i = 0; i < _elements.size(); ++i) {
@@ -98,7 +103,8 @@ std::ostream& Fixed_array_type::print(std::ostream& os) const {
 }
 
 Type* Fixed_array_type::clone() const {
-	return new Fixed_array_type { _elements };
+	// std::cout << "clone fixed array" << std::endl;
+	return new Fixed_array_type { _element->env, _elements };
 }
 
 }

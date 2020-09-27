@@ -22,7 +22,7 @@ const Type* Integer_type::element() const {
 	return env.integer;
 }
 const Type* Integer_type::iterator() const {
-	return Type::structure("int_iterator", {
+	return Type::structure(env, "int_iterator", {
 		env.integer,
 		env.integer,
 		env.integer

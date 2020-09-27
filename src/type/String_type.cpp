@@ -8,7 +8,7 @@
 
 namespace ls {
 
-String_type::String_type(Environment& env) : Pointer_type(Type::structure("string", {
+String_type::String_type(Environment& env) : Pointer_type(Type::structure(env, "string", {
 	env.integer, // ?
 	env.integer, // ?
 	env.integer, // ?
@@ -23,7 +23,7 @@ const Type* String_type::element() const {
 	return env.string;
 }
 const Type* String_type::iterator() const {
-	return Type::structure("string_iterator", {
+	return Type::structure(env, "string_iterator", {
 		env.any, env.integer, env.integer, env.integer, env.integer
 	});
 }

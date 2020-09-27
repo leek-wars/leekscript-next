@@ -8,7 +8,7 @@
 
 namespace ls {
 
-Null_type::Null_type(Environment& env) : Pointer_type(Type::structure("null", {
+Null_type::Null_type(Environment& env) : Pointer_type(Type::structure(env, "null", {
 	env.integer, // ?
 	env.integer, // ?
 	env.integer, // ?
@@ -19,24 +19,29 @@ Null_type::Null_type(Environment& env) : Pointer_type(Type::structure("null", {
 bool Null_type::operator == (const Type* type) const {
 	return dynamic_cast<const Null_type*>(type);
 }
+
 int Null_type::distance(const Type* type) const {
 	if (not temporary and type->temporary) return -1;
 	if (dynamic_cast<const Any_type*>(type->folded)) { return 1; }
 	if (dynamic_cast<const Null_type*>(type->folded)) { return 0; }
 	return -1;
 }
+
 std::string Null_type::class_name() const {
 	return "Null";
 }
+
 Json Null_type::json() const {
 	return {
 		{ "name", "null" }
 	};
 }
+
 std::ostream& Null_type::print(std::ostream& os) const {
 	os << BLUE_BOLD << "null" << END_COLOR;
 	return os;
 }
+
 Type* Null_type::clone() const {
 	return new Null_type { env };
 }

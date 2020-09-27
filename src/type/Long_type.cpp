@@ -17,19 +17,23 @@ namespace ls {
 const Type* Long_type::key() const {
 	return env.integer;
 }
+
 const Type* Long_type::element() const {
 	return env.integer;
 }
+
 const Type* Long_type::iterator() const {
-	return Type::structure("long_iterator", {
+	return Type::structure(env, "long_iterator", {
 		env.long_,
 		env.long_,
 		env.integer
 	});
 }
+
 bool Long_type::operator == (const Type* type) const {
 	return dynamic_cast<const Long_type*>(type) != nullptr;
 }
+
 int Long_type::distance(const Type* type) const {
 	if (not temporary and type->temporary) return -1;
 	if (dynamic_cast<const Long_type*>(type->folded)) { return 0; }
@@ -41,23 +45,28 @@ int Long_type::distance(const Type* type) const {
 	if (dynamic_cast<const Bool_type*>(type->folded)) { return 101; }
 	return -1;
 }
+
 #if COMPILER
 llvm::Type* Long_type::llvm(Compiler& c) const {
 	return llvm::Type::getInt64Ty(c.getContext());
 }
 #endif
+
 std::string Long_type::class_name() const {
 	return "Number";
 }
+
 Json Long_type::json() const {
 	return {
 		{ "name", "long" }
 	};
 }
+
 std::ostream& Long_type::print(std::ostream& os) const {
 	os << BLUE_BOLD << "long" << END_COLOR;
 	return os;
 }
+
 Type* Long_type::clone() const {
 	return new Long_type { env };
 }

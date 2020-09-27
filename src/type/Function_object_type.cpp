@@ -9,7 +9,7 @@
 
 namespace ls {
 
-Function_object_type::Function_object_type(const Type* ret, const std::vector<const Type*>& args, bool closure, const Value* function) : Pointer_type(Type::structure(closure ? "closure" : "function", {
+Function_object_type::Function_object_type(const Type* ret, const std::vector<const Type*>& args, bool closure, const Value* function) : Pointer_type(Type::structure(ret->env, closure ? "closure" : "function", {
 	ret->env.integer, // ?
 	ret->env.integer, // ?
 	ret->env.integer, // ?

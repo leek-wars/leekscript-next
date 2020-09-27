@@ -7,7 +7,7 @@
 
 namespace ls {
 
-Object_type::Object_type(Environment& env, bool native) : Pointer_type(Type::structure("object", {
+Object_type::Object_type(Environment& env, bool native) : Pointer_type(Type::structure(env, "object", {
 	env.integer, // ?
 	env.integer, // ?
 	env.integer, // ?

@@ -145,10 +145,10 @@ public:
 	static const Type* fun(const Type* return_type, std::vector<const Type*> arguments = {}, const Value* function = nullptr);
 	static const Type* fun_object(const Type* return_type, std::vector<const Type*> arguments = {}, const Value* function = nullptr);
 	static const Type* closure(const Type* return_type, std::vector<const Type*> arguments = {}, const Value* function = nullptr);
-	static const Type* structure(const std::string name, std::initializer_list<const Type*> types);
-	static const Type* compound(std::vector<const Type*> types);
-	static const Type* compound(std::initializer_list<const Type*> types);
-	static const Type* tmp_compound(std::initializer_list<const Type*> types);
+	static const Type* structure(Environment& env, const std::string name, std::vector<const Type*> types);
+	static const Type* compound(Environment& env, std::vector<const Type*> types);
+	static const Type* compound(Environment& env, std::initializer_list<const Type*> types);
+	static const Type* tmp_compound(Environment& env, std::initializer_list<const Type*> types);
 
 	static const Type* meta_or(const Type* t1, const Type* t2);
 	static const Type* meta_add(const Type* t1, const Type* t2);

@@ -7,7 +7,7 @@
 
 namespace ls {
 
-Class_type::Class_type(Environment& env, std::string name) : Pointer_type(Type::structure(name, {
+Class_type::Class_type(Environment& env, std::string name) : Pointer_type(Type::structure(env, name, {
 	env.integer, // ?
 	env.integer, // ?
 	env.integer, // ?

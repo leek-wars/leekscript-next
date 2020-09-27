@@ -11,7 +11,7 @@
 
 namespace ls {
 
-Array_type::Array_type(const Type* element) : Pointer_type(Type::structure("array<" + element->getName() + ">", {
+Array_type::Array_type(const Type* element) : Pointer_type(Type::structure(element->env, "array<" + element->getName() + ">", {
 	element->env.integer, // ?
 	element->env.integer, // ?
 	element->env.integer, // ?
@@ -56,18 +56,22 @@ const Type* Array_type::iterator() const {
 	if (merged->is_real()) return env.real->pointer();
 	return env.any->pointer();
 }
+
 std::string Array_type::class_name() const {
 	return "Array";
 }
+
 const std::string Array_type::getName() const {
 	return "array<" + _element->getName() + ">";
 }
+
 Json Array_type::json() const {
 	return {
 		{ "name", "array" },
 		{ "element", _element->json() }
 	};
 }
+
 std::ostream& Array_type::print(std::ostream& os) const {
 	os << BLUE_BOLD << "array" << END_COLOR;
 	if (_element != env.void_) {
@@ -75,6 +79,7 @@ std::ostream& Array_type::print(std::ostream& os) const {
 	}
 	return os;
 }
+
 Type* Array_type::clone() const {
 	return new Array_type { _element };
 }

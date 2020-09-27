@@ -1,18 +1,18 @@
 #ifndef FIXED_ARRAY_TYPE_HPP
 #define FIXED_ARRAY_TYPE_HPP
 
-#include "Array_type.hpp"
+#include "Struct_type.hpp"
 #include <map>
 
 namespace ls {
 
 class Type;
 
-class Fixed_array_type : public Array_type {
+class Fixed_array_type : public Struct_type {
 	std::vector<const Type*> _elements;
 	const Type* _element;
 public:
-	Fixed_array_type(const std::vector<const Type*>&);
+	Fixed_array_type(Environment& env, std::vector<const Type*>);
 	virtual int id() const override { return 5; }
 	virtual const std::string getName() const override;
 	virtual Json json() const override;

@@ -14,7 +14,7 @@ const Type* Compound_type::element() const {
 	for (const auto& type : types) {
 		elements.push_back(type->element());
 	}
-	return Type::compound(elements);
+	return Type::compound(env, elements);
 }
 
 const Type* Compound_type::pointed() const {
@@ -54,7 +54,7 @@ bool Compound_type::some(std::function<bool(const Type*)> fun) const {
 const Type* Compound_type::filter(std::function<bool(const Type*)> fun) const {
 	std::vector<const Type*> new_types;
 	std::copy_if(types.begin(), types.end(), std::back_inserter(new_types), fun);
-	return Type::compound(new_types);
+	return Type::compound(env, new_types);
 }
 
 int Compound_type::distance(const Type* type) const {
