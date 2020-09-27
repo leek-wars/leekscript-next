@@ -37,6 +37,7 @@ public:
 	std::vector<std::vector<Instruction*>> loops;
 	std::vector<FunctionVersion*> functions_stack;
 	std::vector<Error> errors;
+	std::map<size_t, std::vector<Error>> errors_by_line;
 
 	SemanticAnalyzer(Environment& env);
 

@@ -16,6 +16,10 @@ Error::Error(Type type, ErrorLevel level, Location location, Location focus, std
 
 Error::~Error() {}
 
+bool Error::operator == (const Error& e) const {
+	return type == e.type and level == e.level and location == e.location and parameters == e.parameters;
+}
+
 std::string Error::message() const {
 	return build_message(type, parameters);
 }

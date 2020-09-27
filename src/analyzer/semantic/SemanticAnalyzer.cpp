@@ -316,7 +316,20 @@ Variable* SemanticAnalyzer::update_var(Variable* variable, bool add_mutation) {
 
 void SemanticAnalyzer::add_error(Error ex) {
 	// ex.underline_code = program->underline_code(ex.location, ex.focus);
+
+	// Check existing error
+	auto line = errors_by_line.find(ex.location.start.line);
+	if (line == errors_by_line.end()) {
+		line = errors_by_line.emplace(ex.location.start.line, std::vector<Error> {}).first;
+	}
+	for (const auto& error : line->second) {
+		if (error == ex) {
+			return;
+		}
+	}
+
 	errors.push_back(ex);
+	line->second.push_back(ex);
 }
 
 } // end of namespace ls

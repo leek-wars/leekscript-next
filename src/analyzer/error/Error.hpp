@@ -69,6 +69,8 @@ public:
 	Error(Type type, ErrorLevel level, Location location, Location focus, std::vector<std::string> parameters);
 	virtual ~Error();
 
+	bool operator == (const Error&) const;
+
 	std::string message() const;
 	Json json() const;
 };

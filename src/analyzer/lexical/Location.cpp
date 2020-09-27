@@ -2,6 +2,10 @@
 
 namespace ls {
 
+bool Position::operator == (const Position& l) const {
+	return raw == l.raw;
+}
+
 Position Position::after() const {
 	return { line, column + 1, raw + 1 };
 }
@@ -10,6 +14,10 @@ Json Position::json() const {
 	return Json::array({
 		line, column, raw
 	});
+}
+
+bool Location::operator == (const Location& l) const {
+	return file == l.file and start == l.start and end == l.end;
 }
 
 bool Location::contains(size_t position) const {
