@@ -245,6 +245,10 @@ StringSTD::StringSTD(Environment& env) : Module(env, "String") {
 		{env.tmp_string, {env.string}, ADDR((void*) &LSString::sort)},
 	});
 
+	method("string", {
+		{env.tmp_string, { env.any }, ADDR(nullptr)},
+	}, LEGACY_ONLY);
+
 	method("wordCount", {
 		{env.any, {env.string}, ADDR((void*) &LSString::word_count_ptr)},
 		{env.integer, {env.string}, ADDR((void*) &LSString::word_count)},
