@@ -112,7 +112,7 @@ Hover Program::hover(SemanticAnalyzer& analyzer, File* file, size_t position) {
 
 #if COMPILER
 
-void format_ir_comments(Program* program, const std::string& ll_file_name) {
+void Program::format_ir_comments(const std::string& ll_file_name) const {
 	auto lines = Util::read_file_lines(ll_file_name);
 	std::string result;
 	for (const auto& line : lines) {
@@ -122,7 +122,7 @@ void format_ir_comments(Program* program, const std::string& ll_file_name) {
 			auto comment = line.substr(34, end - 34).c_str();
 			int comment_id = std::atoi(comment);
 			// std::cout << "comment id = " << comment << " => " << comment_id << std::endl;
-			result += "  ; " + program->comments[comment_id] +  "\n";
+			result += "  ; " + comments[comment_id] +  "\n";
 		} else {
 			result += line + "\n";
 		}
@@ -145,6 +145,7 @@ void Program::compile_leekscript(Compiler& c, bool format, bool debug, bool bitc
 	c.program = this;
 	c.init();
 	c.vm->context = context;
+	c.enable_comments = pseudo_code;
 
 	module = new llvm::Module(file_name, c.getContext());
 	module->setDataLayout(c.DL);
@@ -157,7 +158,7 @@ void Program::compile_leekscript(Compiler& c, bool format, bool debug, bool bitc
 		llvm::raw_fd_ostream ir(ll_file_name, EC2, llvm::sys::fs::F_None);
 		module->print(ir, nullptr);
 		ir.flush();
-		format_ir_comments(this, ll_file_name);
+		format_ir_comments(ll_file_name);
 	}
 
 	auto compilation_start = std::chrono::high_resolution_clock::now();

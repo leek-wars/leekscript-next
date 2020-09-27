@@ -76,6 +76,7 @@ public:
 	void print(std::ostream& os, bool debug = false, bool sections = false) const;
 
 	std::string underline_code(Location location, Location focus) const;
+	void format_ir_comments(const std::string& ll_file_name) const;
 };
 
 std::ostream& operator << (std::ostream& os, const Program* program);

@@ -101,6 +101,7 @@ public:
 	std::stack<int> exception_line;
 	bool export_bitcode = false;
 	bool export_optimized_ir = false;
+	bool enable_comments = false;
 	std::unordered_map<std::string, Compiler::value> global_strings;
 
 	VM* vm;
@@ -328,7 +329,7 @@ public:
 	bool check_value_not_void(value) const;
 	void increment_mpz_created();
 	void increment_mpz_deleted();
-	void comment(std::string comment);
+	void comment(std::string);
 };
 
 }

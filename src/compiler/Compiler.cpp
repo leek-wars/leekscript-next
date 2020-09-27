@@ -81,9 +81,11 @@ Compiler::Compiler(Environment& env, VM* vm) : env(env), Ctx(llvm::make_unique<l
 		}
 		if (this->export_optimized_ir) {
 			std::error_code EC2;
-			llvm::raw_fd_ostream ir(m->getName().str() + "-opti.ll", EC2, llvm::sys::fs::F_None);
+			auto ll_file_name = m->getName().str() + "-opti.ll";
+			llvm::raw_fd_ostream ir(ll_file_name, EC2, llvm::sys::fs::F_None);
 			m->print(ir, nullptr);
 			ir.flush();
+			program->format_ir_comments(ll_file_name);
 		}
 		return m;
 	}) {
@@ -2442,10 +2444,10 @@ void Compiler::increment_mpz_deleted() {
 }
 
 void Compiler::comment(std::string comment) {
-
+	if (not enable_comments) return;
 	int comment_id = program->comments.size();
 	program->comments.push_back(comment);
-	insn_call(env.void_, { new_integer(comment_id) }, "System.comment");
+	insn_call(env.void_, { new_integer(comment_id) }, "System.comment", true);
 }
 
 }
