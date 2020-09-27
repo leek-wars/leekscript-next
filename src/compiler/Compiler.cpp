@@ -118,7 +118,7 @@ llvm::orc::VModuleKey Compiler::addModule(std::unique_ptr<llvm::Module> M, bool 
 
 llvm::AllocaInst* Compiler::CreateEntryBlockAlloca(const std::string& VarName, llvm::Type* type) {
 	assert(F);
-	llvm::IRBuilder<> builder(&F->getEntryBlock(), F->getEntryBlock().begin());
+	// llvm::IRBuilder<> builder(&F->getEntryBlock(), F->getEntryBlock().begin());
 	return builder.CreateAlloca(type, nullptr, VarName);
 }
 
