@@ -22,9 +22,12 @@ SemanticAnalyzer::SemanticAnalyzer(Environment& env) : env(env) {
 void SemanticAnalyzer::analyze(Program* program) {
 
 	this->program = program;
-	for (const auto& clazz : env.std.classes) {
-		auto const_class = env.const_class(clazz.first);
-		program->globals.emplace(clazz.first, new Variable(clazz.first, nullptr, VarScope::INTERNAL, const_class, 0, nullptr, nullptr, nullptr, nullptr, clazz.second->clazz.get()));
+
+	if (not env.legacy) {
+		for (const auto& clazz : env.std.classes) {
+			auto const_class = env.const_class(clazz.first);
+			program->globals.emplace(clazz.first, new Variable(clazz.first, nullptr, VarScope::INTERNAL, const_class, 0, nullptr, nullptr, nullptr, nullptr, clazz.second->clazz.get()));
+		}
 	}
 
 	program->main->create_default_version(this);

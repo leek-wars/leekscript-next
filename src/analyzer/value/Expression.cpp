@@ -194,27 +194,30 @@ void Expression::analyze(SemanticAnalyzer* analyzer) {
 
 	if (v1_type->class_name().size() || v1_type->is_void()) {
 		auto class_name = v1_type->is_void() ? "Value" : v1_type->class_name();
-		auto object_class = analyzer->program->globals[class_name]->clazz;
-		auto call = object_class->getOperator(analyzer, op->character);
-		// std::cout << "Expression Call: " << call << std::endl;
-		callable_version = call.resolve(analyzer, {v1_type, v2_type});
-		if (callable_version) {
-			// std::cout << "Expression Callable_version: " << callable_version << std::endl;
-			throws |= callable_version.template_()->flags & Module::THROWS;
-			callable_version.apply_mutators(analyzer, {v1.get(), v2.get()});
-			// For placeholder types, keep them no matter the operator
-			auto return_type = callable_version.type->return_type();
-			if (op->type == TokenType::PLUS or op->type == TokenType::MINUS or op->type == TokenType::TIMES or op->type == TokenType::MODULO) {
-				if (v1->type->placeholder) { return_type = v1_type; }
-				if (v2->type->placeholder) { return_type = v2_type; }
+		// std::cout << "class_name = " << class_name << std::endl;
+		if (analyzer->env.std.classes.find(class_name) != analyzer->env.std.classes.end()) {
+			auto object_class = analyzer->env.std.classes[class_name]->clazz.get();
+			auto call = object_class->getOperator(analyzer, op->character);
+			// std::cout << "Expression Call: " << call << std::endl;
+			callable_version = call.resolve(analyzer, {v1_type, v2_type});
+			if (callable_version) {
+				// std::cout << "Expression Callable_version: " << callable_version << std::endl;
+				throws |= callable_version.template_()->flags & Module::THROWS;
+				callable_version.apply_mutators(analyzer, {v1.get(), v2.get()});
+				// For placeholder types, keep them no matter the operator
+				auto return_type = callable_version.type->return_type();
+				if (op->type == TokenType::PLUS or op->type == TokenType::MINUS or op->type == TokenType::TIMES or op->type == TokenType::MODULO) {
+					if (v1->type->placeholder) { return_type = v1_type; }
+					if (v2->type->placeholder) { return_type = v2_type; }
+				}
+				type = is_void ? env.void_ : return_type;
+				if ((v2_type->is_function() or v2_type->is_function_pointer() or v2_type->is_function_object()) and (callable_version.type->argument(1)->is_function() or callable_version.type->argument(1)->is_function_pointer())) {
+					v2->will_take(analyzer, callable_version.type->argument(1)->arguments(), 1);
+					v2->set_version(analyzer, callable_version.type->argument(1)->arguments(), 1);
+				}
+				// std::cout << "Operator " << v1->to_string() << " (" << v1->type << ") " << op->character << " " << v2->to_string() << "(" << v2->type << ") found! " << return_type << std::endl;
+				return;
 			}
-			type = is_void ? env.void_ : return_type;
-			if ((v2_type->is_function() or v2_type->is_function_pointer() or v2_type->is_function_object()) and (callable_version.type->argument(1)->is_function() or callable_version.type->argument(1)->is_function_pointer())) {
-				v2->will_take(analyzer, callable_version.type->argument(1)->arguments(), 1);
-				v2->set_version(analyzer, callable_version.type->argument(1)->arguments(), 1);
-			}
-			// std::cout << "Operator " << v1->to_string() << " (" << v1->type << ") " << op->character << " " << v2->to_string() << "(" << v2->type << ") found! " << return_type << std::endl;
-			return;
 		}
 	}
 	// std::cout << "No such operator " << v1->type << " " << op->character << " " << v2->type << std::endl;

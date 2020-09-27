@@ -50,7 +50,7 @@ const Call& Class::getOperator(SemanticAnalyzer* analyzer, std::string& name) {
 		call.add_callable(&i->second);
 	}
 	if (this->name != "Value") {
-		auto value_class = analyzer->program->globals["Value"]->clazz;
+		auto value_class = analyzer->env.std.classes["Value"]->clazz.get();
 		auto i = value_class->operators.find(name);
 		if (i != value_class->operators.end()) {
 			call.add_callable(&i->second);

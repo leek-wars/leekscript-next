@@ -48,28 +48,28 @@ Location VariableValue::location() const {
 
 Call VariableValue::get_callable(SemanticAnalyzer* analyzer, int argument_count) const {
 	if (name == "~") {
-		return { &analyzer->program->globals["Value"]->clazz->operators["~"] };
+		return { &analyzer->env.std.classes["Value"]->clazz->operators["~"] };
 	}
 	if (name == "Number") {
-		return { &analyzer->program->globals["Number"]->clazz->methods["new"] };
+		return { &analyzer->env.std.classes["Number"]->clazz->methods["new"] };
 	}
 	if (name == "Boolean") {
-		return { &analyzer->program->globals["Boolean"]->clazz->methods["new"] };
+		return { &analyzer->env.std.classes["Boolean"]->clazz->methods["new"] };
 	}
 	if (name == "String") {
-		return { &analyzer->program->globals["String"]->clazz->methods["new"] };
+		return { &analyzer->env.std.classes["String"]->clazz->methods["new"] };
 	}
 	if (name == "Array") {
-		return { &analyzer->program->globals["Array"]->clazz->methods["new"] };
+		return { &analyzer->env.std.classes["Array"]->clazz->methods["new"] };
 	}
 	if (name == "Object") {
-		return { &analyzer->program->globals["Object"]->clazz->methods["new"] };
+		return { &analyzer->env.std.classes["Object"]->clazz->methods["new"] };
 	}
 	if (name == "Set") {
-		return { &analyzer->program->globals["Set"]->clazz->methods["new"] };
+		return { &analyzer->env.std.classes["Set"]->clazz->methods["new"] };
 	}
 	if (type->is_class()) {
-		return { &analyzer->program->globals["Class"]->clazz->methods["construct"], nullptr, (Value*) this };
+		return { &analyzer->env.std.classes["Class"]->clazz->methods["construct"], nullptr, (Value*) this };
 	}
 	if (var) {
 		if (var->call.callables.size()) return var->call;
@@ -83,13 +83,10 @@ Call VariableValue::get_callable(SemanticAnalyzer* analyzer, int argument_count)
 		}
 	} else {
 		Call call;
-		for (const auto& variable : analyzer->program->globals) {
-			if (variable.second->type->is_class()) {
-				const auto& cl = variable.second->clazz;
-				auto m = cl->methods.find(name);
-				if (m != cl->methods.end()) {
-					call.add_callable(&m->second);
-				}
+		for (const auto& var : analyzer->env.std.classes) {
+			auto m = var.second->clazz->methods.find(name);
+			if (m != var.second->clazz->methods.end()) {
+				call.add_callable(&m->second);
 			}
 		}
 		return call;
@@ -137,30 +134,28 @@ void VariableValue::analyze(SemanticAnalyzer* analyzer) {
 		// std::cout << "var " << var << " " << (void*) var << " " << var->type << std::endl;
 	} else {
 		bool found = false;
-		for (const auto& variable : analyzer->program->globals) {
-			if (variable.second->type->is_class()) {
-				const auto& cl = variable.second->clazz;
-				for (const auto& m : cl->methods) {
-					if (m.first == name) {
-						type = m.second.versions.at(0).type;
-						found = true;
-						for (const auto& i : m.second.versions) {
-							versions.insert({ i.type->arguments(), variable.first + "." + name });
-						}
-						class_method = true;
-						break;
+		for (const auto& variable : analyzer->env.std.classes) {
+			const auto& cl = variable.second->clazz;
+			for (const auto& m : cl->methods) {
+				if (m.first == name) {
+					type = m.second.versions.at(0).type;
+					found = true;
+					for (const auto& i : m.second.versions) {
+						versions.insert({ i.type->arguments(), variable.first + "." + name });
 					}
+					class_method = true;
+					break;
 				}
-				for (const auto& c : cl->static_fields) {
-					if (c.first == name) {
-						type = c.second.type;
-						static_field = true;
-						#if COMPILER
-						static_access_function = c.second.static_fun;
-						#endif
-						found = true;
-						break;
-					}
+			}
+			for (const auto& c : cl->static_fields) {
+				if (c.first == name) {
+					type = c.second.type;
+					static_field = true;
+					#if COMPILER
+					static_access_function = c.second.static_fun;
+					#endif
+					found = true;
+					break;
 				}
 			}
 			if (found) break;
