@@ -9,7 +9,6 @@
 namespace ls {
 
 class Phi;
-class Mutation;
 class Variable;
 
 class Section {
