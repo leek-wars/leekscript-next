@@ -60,7 +60,8 @@ SystemSTD::SystemSTD(Environment& env) : Module(env, "System") {
 		{env.void_, {env.any}, ADDR(print)}
 	}, LEGACY_ONLY);
 	method("debugC", {
-		{env.void_, {env.any}, ADDR(print)}
+		{env.void_, {env.any}, ADDR(print)},
+		{env.void_, {env.any, env.integer}, ADDR(print)},
 	}, LEGACY_ONLY);
 
 	method("internal_print", {
