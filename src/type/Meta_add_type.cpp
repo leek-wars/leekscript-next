@@ -27,7 +27,7 @@ Json Meta_add_type::json() const {
 	};
 }
 std::ostream& Meta_add_type::print(std::ostream& os) const {
-	os << C_GREY << t1 << " | " << t2 << END_COLOR;
+	os << C_GREY << t1 << " + " << t2 << END_COLOR;
 	return os;
 }
 Type* Meta_add_type::clone() const {

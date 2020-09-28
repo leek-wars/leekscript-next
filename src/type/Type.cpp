@@ -33,8 +33,8 @@
 #include "Template_type.hpp"
 #include "Never_type.hpp"
 #include "Compound_type.hpp"
+#include "Meta_or_type.hpp"
 #include "Meta_add_type.hpp"
-#include "Meta_concat_type.hpp"
 #include "Meta_mul_type.hpp"
 #include "Meta_baseof_type.hpp"
 #include "Meta_element_type.hpp"
@@ -146,7 +146,7 @@ const Type* Type::operator * (const Type* t2) const {
 	return env.any;
 }
 
-const Type* Type::concat(const Type* type) const {
+const Type* Type::add(const Type* type, bool in_loop) const {
 	if (is_fixed_array()) {
 		auto new_elements = elements();
 		if (type->is_fixed_array()) {
