@@ -619,8 +619,8 @@ Value* SyntaxicAnalyzer::eatSimpleExpression(Block* block, bool pipe_opened, boo
 
 	while (t->type == TokenType::OPEN_BRACKET || t->type == TokenType::OPEN_PARENTHESIS || t->type == TokenType::DOT) {
 
-		if (t->location.start.column != last_character + last_size)
-			break;
+		// if (t->location.start.column != last_character + last_size)
+		// 	break;
 
 		switch (t->type) {
 			case TokenType::OPEN_BRACKET: {
@@ -1141,6 +1141,10 @@ Value* SyntaxicAnalyzer::eatIf(Block* block) {
 	} else {
 		auto then = eatBlock(block, false, true, nullptr, iff->end_section);
 		iff->then = std::unique_ptr<Block>(then);
+	}
+
+	if (t->type == TokenType::SEMICOLON) {
+		eat();
 	}
 
 	if (t->type == TokenType::ELSE) {

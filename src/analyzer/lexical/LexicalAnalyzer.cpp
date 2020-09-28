@@ -199,17 +199,19 @@ std::vector<Token> LexicalAnalyzer::parseTokens(const std::string& code) {
 
 		if (c == '\n') {
 			lineComment = false;
-		} else if (c == '/' && nc == '/') {
+		}
+		if (c == '/' && nc == '/') {
 			lineComment = true;
 		} else if (c == '/' && nc == '*') {
 			comment++;
+			// eat the '*'
+			next();
 		} else if (c == '*' && nc == '/') {
 			comment--;
-			// eat the '*/'
-			next();
+			// eat the '/'
 			next();
 		}
-		if (comment == 0 and not lineComment) {
+		else if (comment == 0 and not lineComment) {
 			if (type == LetterType::WHITE) {
 				if (ident) {
 					tokens.push_back({ getTokenType(word, TokenType::IDENT), file, k, line, character, word });
