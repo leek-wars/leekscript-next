@@ -137,6 +137,7 @@ void Expression::analyze(SemanticAnalyzer* analyzer) {
 
 	if (op->type == TokenType::DOUBLE_QUESTION_MARK) {
 		type = v1->type->operator * (v2->type);
+		std::cout << "type = " << type << std::endl;
 		return;
 	}
 	if (op->type == TokenType::CATCH_ELSE) {
@@ -306,6 +307,7 @@ Compiler::value Expression::compile(Compiler& c) const {
 		label_else.block = c.builder.GetInsertBlock();
 
 		c.insn_label(&label_end);
+		std::cout << type->llvm(c) << " " << y.v->getType() << " " << x.v->getType() << std::endl;
 		auto PN = c.builder.CreatePHI(type->llvm(c), 2);
 		PN->addIncoming(y.v, label_then.block);
 		PN->addIncoming(x.v, label_else.block);
@@ -335,6 +337,7 @@ Compiler::value Expression::compile(Compiler& c) const {
 		return ((LeftValue*) v2.get())->compile_l(c);
 	} else {
 		auto v = v2->compile(c);
+		// v = c.insn_convert(v, callable_version.type->argument(1));
 		if (callable_version.template_()->symbol and v.t->is_primitive() and callable_version.type->argument(1)->is_any()) {
 			v = c.insn_to_any(v);
 		}
@@ -354,11 +357,14 @@ Compiler::value Expression::compile(Compiler& c) const {
 		}
 		return v;
 	}}();
+	// std::cout << "compiled " << compiled_v1.t << " " << compiled_v2.t << std::endl;
 	args.push_back(compiled_v1);
 	args.push_back(compiled_v2);
 	if (op->reversed) std::reverse(args.begin(), args.end());
 
 	c.pop_temporary_expression_value();
+
+	c.comment(to_string());
 
 	auto r = callable_version.compile_call(c, args, nullptr, flags);
 

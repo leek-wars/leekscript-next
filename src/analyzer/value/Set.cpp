@@ -79,6 +79,7 @@ Compiler::value Set::compile(Compiler& c) const {
 	auto create = type->element()->is_integer() ? "Set.new.2" : type->element()->is_real() ? "Set.new.1" : "Set.new";
 	auto insert = type->element()->is_integer() ? "Set.vinsert.2" : type->element()->is_real() ? "Set.vinsert.1" : "Set.vinsert";
 
+	c.comment(to_string());
 	unsigned ops = 1;
 	auto s = c.insn_call(type, {}, create);
 

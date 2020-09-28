@@ -161,6 +161,7 @@ Compiler::value VariableDeclaration::compile(Compiler& c) const {
 			if (!val.t->reference) {
 				val = c.insn_move_inc(val);
 			}
+			c.comment("Store variable " + variable->name + " = " + ex->to_string());
 			variable->create_entry(c);
 			variable->store_value(c, val);
 			ex->compile_end(c);

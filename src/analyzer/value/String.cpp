@@ -29,6 +29,7 @@ bool String::will_store(SemanticAnalyzer* analyzer, const Type* type) {
 
 #if COMPILER
 Compiler::value String::compile(Compiler& c) const {
+	c.comment("String '" + token->content + "'");
 	auto s = c.new_const_string(token->content);
 	return c.insn_call(c.env.tmp_string, {s}, "String.new.1");
 }

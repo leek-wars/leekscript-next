@@ -74,6 +74,7 @@ void ArrayAccess::analyze(SemanticAnalyzer* analyzer) {
 
 	array->analyze(analyzer);
 
+	// std::cout << "AA array type " << array->type << std::endl;
 	if (not array->type->can_be_container()) {
 		analyzer->add_error({Error::Type::VALUE_MUST_BE_A_CONTAINER, ErrorLevel::WARNING, location(), array->location(), {array->to_string()}});
 		return;
@@ -190,6 +191,7 @@ const Type* ArrayAccess::version_type(std::vector<const Type*> version) const {
 		return type;
 	} else {
 		// The array is not homogeneous, so the function inside an array always returns any
+		std::cout << "AA version_type fun_object " << std::endl;
 		return Type::fun_object(env.any, { env.any });
 	}
 }
@@ -208,12 +210,15 @@ Hover ArrayAccess::hover(SemanticAnalyzer& analyzer, size_t position) const {
 Compiler::value ArrayAccess::compile(Compiler& c) const {
 	const auto& env = c.env;
 
+	// std::cout << "ArrayAccess::compile " << array->type << std::endl;
+
 	c.mark_offset(open_bracket->location.start.line);
 
 	((ArrayAccess*) this)->compiled_array = array->compile(c);
 	if (array->type->temporary) {
 		c.add_temporary_value(compiled_array);
 		((ArrayAccess*) this)->should_delete_array = true;
+		// std::cout << "should delete array" << std::endl;
 	}
 
 	c.inc_ops(2); // Array access : 2 operations

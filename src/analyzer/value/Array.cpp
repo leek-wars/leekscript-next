@@ -171,6 +171,7 @@ Compiler::value Array::compile(Compiler& c) const {
 		auto v = val->compile(c);
 		elements.push_back(v);
 	}
+	c.comment(to_string());
 	auto array = c.new_array(type->element(), elements);
 	for (const auto& val : expressions) {
 		val->compile_end(c);
