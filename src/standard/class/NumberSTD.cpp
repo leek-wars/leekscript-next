@@ -231,15 +231,15 @@ NumberSTD::NumberSTD(Environment& env) : Module(env, "Number") {
 	method("acos", {
 		{env.real, {env.any}, ADDR((void*) acos_ptr)},
 		{env.real, {env.real}, ADDR(acos_real)},
-	});
+	}, LEGACY);
 	method("asin", {
 		{env.real, {env.any}, ADDR((void*) asin_ptr)},
 		{env.real, {env.real}, ADDR(asin_real)},
-	});
+	}, LEGACY);
 	method("atan", {
 		{env.real, {env.any}, ADDR((void*) atan_ptr)},
 		{env.real, {env.real}, ADDR(atan_real)},
-	});
+	}, LEGACY);
 
 	// template<T1 : number, T2 : number>
 	// T1 × T2 atan2(T1 x, T2 y)
@@ -249,7 +249,7 @@ NumberSTD::NumberSTD(Environment& env) : Module(env, "Number") {
 	method("atan2", {
 		{env.any, {env.any, env.any}, ADDR((void*) atan2_ptr_ptr), DEFAULT},
 		{env.real, {atan2T1, atan2T2}, ADDR(atan2)},
-	});
+	}, LEGACY);
 
 	double (*cbrtreal)(double) = std::cbrt;
 	double (*cbrtint)(int) = std::cbrt;
@@ -257,25 +257,30 @@ NumberSTD::NumberSTD(Environment& env) : Module(env, "Number") {
 		{env.any, {env.any}, ADDR((void*) cbrt_ptr)},
 		{env.real, {env.real}, (void*) cbrtreal},
 		{env.real, {env.integer}, (void*) cbrtint},
-	});
+	}, LEGACY);
+
 	method("ceil", {
 		{env.integer, {env.any}, ADDR((void*) ceil_ptr)},
 		{env.integer, {env.real}, ADDR(ceil_real)},
 		{env.integer, {env.integer}, ADDR(ceil_int)},
-	});
+	}, LEGACY);
+
 	method("char", {
 		{env.tmp_string, {env.const_any}, ADDR((void*) char_ptr)},
 		{env.tmp_string, {env.real}, ADDR((void*) char_real)},
 		{env.tmp_string, {env.const_integer}, ADDR((void*) char_int)},
 	});
+
 	method("cos", {
 		{env.any, {env.any}, ADDR((void*) cos_ptr)},
 		{env.real, {env.real}, ADDR(cos_real)},
-	});
+	}, LEGACY);
+
 	method("exp", {
 		{env.real, {env.any}, ADDR((void*) exp_ptr)},
 		{env.real, {env.real}, ADDR(exp_real)},
-	});
+	}, LEGACY);
+
 	method("fold", {
 		{env.any, {env.any, Type::fun_object(env.any, {env.any, env.integer}), env.any}, ADDR((void*) LSNumber::ls_fold<LSFunction*>)},
 		{env.any, {env.any, Type::fun_object(env.any, {env.any, env.integer}), env.any}, ADDR(fold)}
@@ -286,12 +291,13 @@ NumberSTD::NumberSTD(Environment& env) : Module(env, "Number") {
 		{env.long_, {env.real}, ADDR(floor_real)},
 		{env.long_, {env.long_}, ADDR(floor_real)},
 		{env.integer, {env.integer}, ADDR(floor_real)},
-	});
+	}, LEGACY);
+
 	method("hypot", {
 		{env.real, {env.any, env.any}, ADDR(hypot_ptr_ptr)},
 		{env.real, {env.integer, env.integer}, (void*) std::hypot<int, int>},
 		{env.real, {env.real, env.real}, ADDR(((void*) std::hypot<double, double>))},
-	});
+	}, LEGACY);
 
 	method("log", {
 		{env.real, {env.any}, ADDR((void*) log_ptr)},
@@ -335,26 +341,32 @@ NumberSTD::NumberSTD(Environment& env) : Module(env, "Number") {
 		{env.real, {env.any, env.any}, ADDR((void*) pow_ptr)},
 		{env.long_, {env.long_, env.integer}, ADDR(pow_int)},
 		{env.real, {env.long_, env.long_}, ADDR(pow_int)},
-	});
+	}, LEGACY);
+
 	method("round", {
 		{env.integer, {env.any}, ADDR((void*) round_ptr)},
 		{env.integer, {env.any}, ADDR((void*) round_ptr)},
 		{env.integer, {env.real}, ADDR(round_real)},
 		{env.integer, {env.integer}, ADDR(round_int)}
 	}, LEGACY);
+
 	method("rand", {
 		{env.real, {}, ADDR((void*) rand01)},
-	});
+	}, LEGACY);
+
 	method("randInt", {
 		{env.integer, {env.integer, env.integer}, ADDR((void*) rand_int)},
 	}, LEGACY);
+
 	method("randFloat", {
 		{env.real, {env.real, env.real}, ADDR((void*) rand_real)},
 	}, LEGACY);
+
 	method("signum", {
 		{env.integer, {env.any}, ADDR((void*) signum_ptr)},
 		{env.integer, {env.number}, ADDR(signum)},
 	}, LEGACY);
+
 	method("sin", {
 		{env.real, {env.any}, ADDR((void*) sin_ptr)},
 		{env.real, {env.any}, ADDR((void*) sin_ptr)},
