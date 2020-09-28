@@ -61,7 +61,7 @@ public:
 		} else {
 			oss << C_RED << "FAIL " << END_COLOR << ": " << label;
 			oss << "  =/=>  " << expected << "  got  " << value;
-			std::cout << oss.str();
+			std::cout << oss.str() << std::endl;
 			failed_tests.push_back(oss.str());
 		}
 	}
