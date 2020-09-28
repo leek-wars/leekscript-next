@@ -44,7 +44,7 @@
 
 namespace ls {
 
-SyntaxicAnalyzer::SyntaxicAnalyzer(Environment& env, Resolver* resolver, File* root_file) : resolver(resolver), env(env) {
+SyntaxicAnalyzer::SyntaxicAnalyzer(Environment& env, Resolver* resolver, File* root_file) : lexical(env.legacy), resolver(resolver), env(env) {
 	time = 0;
 	nt = nullptr;
 	t = nullptr;

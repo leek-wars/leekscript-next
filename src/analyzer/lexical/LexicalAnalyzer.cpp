@@ -82,7 +82,11 @@ std::unordered_set<std::string> LexicalAnalyzer::ignored_case_legacy = {
 	"true", "false", "null", "not", "and", "or"
 };
 
-LexicalAnalyzer::LexicalAnalyzer() {
+std::unordered_set<std::string> LexicalAnalyzer::legacy_disabled_keywords = {
+	"new"
+};
+
+LexicalAnalyzer::LexicalAnalyzer(bool legacy) : legacy(legacy) {
 	// Build token cache map
 	for (size_t j = 0; j < type_literals.size(); ++j) {
 		for (const auto& text : type_literals[j]) {
@@ -111,11 +115,20 @@ LetterType LexicalAnalyzer::getLetterType(unsigned char c, unsigned char nc) {
 }
 
 TokenType LexicalAnalyzer::getTokenType(const std::string& word, TokenType by_default) {
-	// TODO legacy only
-	auto word_lower = Util::tolower(word);
-	bool ignore_case = ignored_case_legacy.find(word_lower) != ignored_case_legacy.end();
-	auto i = ignore_case ? token_map.find(word_lower) : token_map.find(word);
-	if (i != token_map.end()) return i->second;
+
+	if (legacy) {
+		if (legacy_disabled_keywords.find(word) != legacy_disabled_keywords.end()) {
+			return by_default;
+		}
+
+		auto word_lower = Util::tolower(word);
+		bool ignore_case = ignored_case_legacy.find(word_lower) != ignored_case_legacy.end();
+		auto i = ignore_case ? token_map.find(word_lower) : token_map.find(word);
+		if (i != token_map.end()) return i->second;
+	} else {
+		auto i = token_map.find(word);
+		if (i != token_map.end()) return i->second;
+	}
 	return by_default;
 }
 

@@ -18,11 +18,13 @@ class LexicalAnalyzer {
 public:
 
 	static std::unordered_set<std::string> ignored_case_legacy;
+	static std::unordered_set<std::string> legacy_disabled_keywords;
 
 	File* file;
 	std::unordered_map<std::string, TokenType> token_map;
+	bool legacy;
 
-	LexicalAnalyzer();
+	LexicalAnalyzer(bool legacy = false);
 
 	LetterType getLetterType(unsigned char c, unsigned char nc);
 	bool isToken(const std::string& word);
