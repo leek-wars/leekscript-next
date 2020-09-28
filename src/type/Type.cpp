@@ -647,7 +647,7 @@ const Type* Type::meta_temporary(const Type* base) {
 	auto i = env.meta_temporary_types.find(base);
 	if (i != env.meta_temporary_types.end()) return i->second.get();
 	auto type = new Meta_temporary_type(base);
-	env.meta_temporary_types.emplace(type, type);
+	env.meta_temporary_types.emplace(base, type);
 	return type;
 }
 
@@ -656,7 +656,7 @@ const Type* Type::meta_not_temporary(const Type* base) {
 	auto i = env.meta_not_temporary_types.find(base);
 	if (i != env.meta_not_temporary_types.end()) return i->second.get();
 	auto type = new Meta_not_temporary_type(base);
-	env.meta_not_temporary_types.emplace(type, type);
+	env.meta_not_temporary_types.emplace(base, type);
 	return type;
 }
 
@@ -665,7 +665,7 @@ const Type* Type::meta_not_void(const Type* base) {
 	auto i = env.meta_not_void_types.find(base);
 	if (i != env.meta_not_void_types.end()) return i->second.get();
 	auto type = new Meta_not_void_type(base);
-	env.meta_not_void_types.emplace(type, type);
+	env.meta_not_void_types.emplace(base, type);
 	return type;
 }
 
