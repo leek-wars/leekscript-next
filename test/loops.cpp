@@ -113,6 +113,17 @@ void Test::test_loops() {
 	file("test/code/loops/lot_of_whiles_array.leek").equals("30030");
 
 	/*
+	 * Do while loops
+	 */
+	header("Do while");
+	code("var i = 0 do { i++ } while (i < 10) i").equals("10");
+	code("var i = 0 var s = 0 do { s += i i++ } while (i < 10) s").equals("45");
+	code("var i = 0 do { i++ if (i == 50) break } while (i < 100) i").equals("50");
+	code("function f(A) { var i = 0 do { i++ } while (i < A) i } f(10)").equals("10");
+	code("var i = 0 var a = 0 do { i++ if (i < 8) continue a++ } while (i < 10) a").equals("3");
+	code("do { break } while (true)").equals("(void)");
+
+	/*
 	 * For loops
 	 */
 	header("For loops");

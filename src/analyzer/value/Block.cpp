@@ -19,11 +19,16 @@ Block::Block(Environment& env, bool is_function_block, bool init_first_section) 
 #endif
 {
 	if (init_first_section) {
-		sections.push_back(std::make_unique<Section>(env, "block", this));
-		end_section = sections.back().get();
-		sections.back()->is_end_of_block = true;
+		setSection(std::make_unique<Section>(env, "block", this));
 	}
 	jumping = true;
+}
+
+void Block::setSection(std::unique_ptr<Section> section) {
+	section->block = this;
+	sections.push_back(std::move(section));
+	end_section = sections.back().get();
+	sections.back()->is_end_of_block = true;
 }
 
 void Block::print(std::ostream& os, int indent, PrintOptions options) const {

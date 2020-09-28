@@ -73,6 +73,7 @@ public:
 	Match::Pattern eatMatchPattern(Block* block);
 	Instruction* eatFor(Block* block);
 	Instruction* eatWhile(Block* block);
+	Instruction* eatDoWhile(Block* block);
 	Break* eatBreak(Block* block);
 	Continue* eatContinue(Block* block);
 	ClassDeclaration* eatClassDeclaration(Block* block);

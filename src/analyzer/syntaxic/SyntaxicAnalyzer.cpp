@@ -16,6 +16,7 @@
 #include "../instruction/Return.hpp"
 #include "../instruction/Throw.hpp"
 #include "../instruction/While.hpp"
+#include "../instruction/DoWhile.hpp"
 #include "../value/AbsoluteValue.hpp"
 #include "../value/Array.hpp"
 #include "../value/Interval.hpp"
@@ -358,6 +359,9 @@ Instruction* SyntaxicAnalyzer::eatInstruction(Block* block) {
 
 		case TokenType::WHILE:
 			return eatWhile(block);
+
+		case TokenType::DO:
+			return eatDoWhile(block);
 
 		default:
 			// std::cout << "Unexpected token : " << (int)t->type << " (" << t->content << ")" << std::endl;
@@ -922,6 +926,7 @@ Value* SyntaxicAnalyzer::eatLambdaOrParenthesisExpression(Block* block, bool pip
 			}
 		} else if (t->type == TokenType::COMMA or t->type == TokenType::ARROW) {
 			// var = <ex> ,|->  [lambda]
+			// std::cout << t->location.start.line << std::endl;
 			return eatLambdaContinue(block, parenthesis, ident, ex, comma_list);
 		} else {
 			// var = <ex> <?>
@@ -943,6 +948,7 @@ Value* SyntaxicAnalyzer::eatLambdaOrParenthesisExpression(Block* block, bool pip
 		int a = findNextArrow();
 		int c = findNextColon();
 		if (parenthesis or (a != -1 and (a < p or p == -1) and (a < c or c == -1))) {
+			std::cout << t->location.start.line << std::endl;
 			return eatLambdaContinue(block, parenthesis, ident, nullptr, comma_list);
 		} else {
 			return new VariableValue(env, ident);
@@ -1484,6 +1490,65 @@ Instruction* SyntaxicAnalyzer::eatWhile(Block* block) {
 	if (!braces) {
 		eat(TokenType::END);
 	}
+
+	// std::cout << "while end_section " << w->end_section << std::endl;
+
+	loops.pop_back();
+
+	return w;
+}
+
+Instruction* SyntaxicAnalyzer::eatDoWhile(Block* block) {
+
+	auto do_token = eat_get(TokenType::DO);
+
+	auto current_section = block->sections.back().get();
+
+	auto w = new DoWhile(env);
+	loops.push_back(w);
+
+	w->end_section = new Section(env, "end");
+
+	w->token = do_token;
+
+	bool parenthesis = false;
+	bool braces = false;
+
+	w->continue_section = new Section(env, "condition", (Block*) nullptr);
+
+	w->body = std::unique_ptr<Block>(eatBlock(block, false, false, current_section));
+
+	eat_get(TokenType::WHILE);
+
+	if (t->type == TokenType::OPEN_PARENTHESIS) {
+		parenthesis = true;
+		eat();
+	}
+
+	// Condition
+	auto condition_instruction = new ExpressionInstruction(env, std::unique_ptr<Value>(eatExpression(block)));
+	w->condition = std::make_unique<Block>(env, false, false);
+	w->condition->setSection(std::unique_ptr<Section>(w->continue_section));
+	w->continue_section = w->condition->sections.back().get();
+	w->condition->add_instruction(std::unique_ptr<Instruction>(condition_instruction));
+
+	const auto& condition_section = w->condition->sections.front().get();
+
+	condition_section->add_predecessor(current_section);
+	current_section->add_successor(condition_section);
+
+	condition_section->add_predecessor(w->body->sections.back().get());
+	w->body->sections.back()->add_successor(condition_section);
+
+	condition_section->add_successor(w->body->sections.front().get());
+	w->body->sections.front()->add_predecessor(condition_section);
+
+	if (parenthesis) {
+		eat(TokenType::CLOSING_PARENTHESIS);
+	}
+
+	condition_section->add_successor(w->end_section);
+	w->end_section->add_predecessor(condition_section);
 
 	// std::cout << "while end_section " << w->end_section << std::endl;
 

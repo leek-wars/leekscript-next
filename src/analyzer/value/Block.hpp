@@ -34,6 +34,8 @@ public:
 
 	Block(Environment& env, bool is_function_block = false, bool init_first_section = true);
 
+	void setSection(std::unique_ptr<Section> section);
+
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;
 

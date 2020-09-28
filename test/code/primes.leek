@@ -9,9 +9,9 @@ let f = function(number) {
 
 var c = 2
 
-for var i = 5; i < 1000000; i += 6 do
+for var i = 5; i < 1000000; i += 6 {
 	if f(i) c++
 	if f(i + 2) c++
-end
+}
 
 c
