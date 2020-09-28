@@ -43,12 +43,12 @@ CallableVersionTemplate::CallableVersionTemplate(std::string name, const Type* t
 	: name(name), type(type), object(object), user_fun(f), mutators(mutators), templates(templates), v1_addr(v1_addr), v2_addr(v2_addr), flags(flags)
 	{}
 
-CallableVersionTemplate::CallableVersionTemplate(const Type* return_type, std::initializer_list<const Type*> arguments, void* addr, int flags, std::vector<const TypeMutator*> mutators)
-	: type(Type::fun(return_type, arguments)), symbol(true), mutators(mutators), flags(flags), addr(addr)
+CallableVersionTemplate::CallableVersionTemplate(const Type* return_type, std::initializer_list<const Type*> arguments, void* addr, int flags, std::vector<const TypeMutator*> mutators, bool v1_addr)
+	: type(Type::fun(return_type, arguments)), symbol(true), mutators(mutators), flags(flags), addr(addr), v1_addr(v1_addr)
 	{}
 #if COMPILER
-CallableVersionTemplate::CallableVersionTemplate(const Type* return_type, std::initializer_list<const Type*> arguments, std::function<Compiler::value(Compiler&, std::vector<Compiler::value>, int)> func, int flags, std::vector<const TypeMutator*> mutators)
-	: type(Type::fun(return_type, arguments)), mutators(mutators), flags(flags), func(func) {}
+CallableVersionTemplate::CallableVersionTemplate(const Type* return_type, std::initializer_list<const Type*> arguments, std::function<Compiler::value(Compiler&, std::vector<Compiler::value>, int)> func, int flags, std::vector<const TypeMutator*> mutators, bool v1_addr)
+	: type(Type::fun(return_type, arguments)), mutators(mutators), flags(flags), func(func), v1_addr(v1_addr) {}
 #endif
 
 CallableVersionTemplate::CallableVersionTemplate(const Type* v1_type, const Type* v2_type, const Type* return_type, void* addr, int flags, std::vector<const TypeMutator*> mutators, bool v1_addr, bool v2_addr)

@@ -46,9 +46,9 @@ public:
 
 	CallableVersionTemplate(std::string name, const Type* type, FunctionVersion* f, std::vector<const TypeMutator*> mutators = {}, std::vector<const Type*> templates = {}, bool object = false, bool v1_addr = false, bool v2_addr = false, int flags = 0);
 
-	CallableVersionTemplate(const Type* return_type, std::initializer_list<const Type*> arguments, void* addr, int flags = 0, std::vector<const TypeMutator*> mutators = {});
+	CallableVersionTemplate(const Type* return_type, std::initializer_list<const Type*> arguments, void* addr, int flags = 0, std::vector<const TypeMutator*> mutators = {}, bool v1_addr = false);
 	#if COMPILER
-	CallableVersionTemplate(const Type* return_type, std::initializer_list<const Type*> arguments, std::function<Compiler::value(Compiler&, std::vector<Compiler::value>, int)> func, int flags = 0, std::vector<const TypeMutator*> mutators = {});
+	CallableVersionTemplate(const Type* return_type, std::initializer_list<const Type*> arguments, std::function<Compiler::value(Compiler&, std::vector<Compiler::value>, int)> func, int flags = 0, std::vector<const TypeMutator*> mutators = {}, bool v1_addr = false);
 	#endif
 
 	CallableVersionTemplate(const Type* v1_type, const Type* v2_type, const Type* return_type, void* addr, int flags = 0, std::vector<const TypeMutator*> mutators = {}, bool v1_addr = false, bool v2_addr = false);
