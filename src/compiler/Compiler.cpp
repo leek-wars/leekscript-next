@@ -241,6 +241,12 @@ Compiler::value Compiler::new_array(const Type* element_type, std::vector<Compil
 	return array;
 }
 
+
+Compiler::value Compiler::create_entry(const Type* type) {
+	// llvm::IRBuilder<> builder(&F->getEntryBlock(), F->getEntryBlock().begin());
+	return { builder.CreateAlloca(type->llvm(*this), nullptr), type->pointer() };
+}
+
 Compiler::value Compiler::create_entry(const std::string& name, const Type* type) {
 	// std::cout << "create_entry " << type << std::endl;
 	return { CreateEntryBlockAlloca(name, type->llvm(*this)), type->pointer() };
