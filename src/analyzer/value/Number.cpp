@@ -8,7 +8,7 @@
 
 namespace ls {
 
-Number::Number(Environment& env, std::string value, Token* token) : Value(env), token(token), value(value) {
+Number::Number(Environment& env, std::string value, VirtualToken token) : Value(env), token(token), value(value) {
 	constant = true;
 }
 

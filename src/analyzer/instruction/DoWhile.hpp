@@ -13,7 +13,7 @@ class Variable;
 class DoWhile : public Instruction {
 public:
 
-	Token* token;
+	VirtualToken token;
 	std::unique_ptr<Block> condition;
 	std::unique_ptr<Block> body;
 	std::vector<Mutation> mutations;

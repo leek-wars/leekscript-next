@@ -10,8 +10,8 @@ namespace ls {
 
 class Map : public Value {
 public:
-	Token* opening_bracket;
-	Token* closing_bracket;
+	VirtualToken opening_bracket;
+	VirtualToken closing_bracket;
 	std::vector<std::unique_ptr<Value>> keys;
 	std::vector<std::unique_ptr<Value>> values;
 

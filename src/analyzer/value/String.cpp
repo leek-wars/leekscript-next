@@ -4,7 +4,7 @@
 
 namespace ls {
 
-String::String(Environment& env, Token* token) : Value(env), token(token) {
+String::String(Environment& env, VirtualToken token) : Value(env), token(token) {
 	type = env.tmp_string;
 	constant = true;
 }

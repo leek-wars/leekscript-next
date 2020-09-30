@@ -10,10 +10,10 @@ namespace ls {
 class Object : public Value {
 public:
 
-	std::vector<Token*> keys;
+	std::vector<VirtualToken> keys;
 	std::vector<std::unique_ptr<Value>> values;
-	Token* opening_brace = nullptr;
-	Token* closing_brace = nullptr;
+	VirtualToken opening_brace;
+	VirtualToken closing_brace;
 
 	Object(Environment& env);
 

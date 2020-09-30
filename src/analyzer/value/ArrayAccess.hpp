@@ -15,8 +15,8 @@ public:
 	std::unique_ptr<Value> array;
 	std::unique_ptr<Value> key;
 	std::unique_ptr<Value> key2;
-	Token* open_bracket;
-	Token* close_bracket;
+	VirtualToken open_bracket;
+	VirtualToken close_bracket;
 	const Type* map_key_type;
 	bool should_delete_array = false;
 	std::unique_ptr<Callable> callable;

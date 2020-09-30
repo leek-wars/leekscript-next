@@ -11,10 +11,10 @@ namespace ls {
 class Boolean : public Value {
 public:
 
-	Token* token;
+	VirtualToken token;
 	bool value;
 
-	Boolean(Environment& env, Token* token);
+	Boolean(Environment& env, VirtualToken token);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

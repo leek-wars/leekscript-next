@@ -3,19 +3,19 @@
 
 #include <memory>
 #include "Token.hpp"
+#include "VirtualToken.hpp"
 
 namespace ls {
 
 class Operator {
 public:
 
-	Token* token;
+	VirtualToken token;
 	TokenType type;
-	std::string character;
 	int priority;
 	bool reversed;
 
-	Operator(Token* token);
+	Operator(VirtualToken token);
 
 	void print(std::ostream&);
 };

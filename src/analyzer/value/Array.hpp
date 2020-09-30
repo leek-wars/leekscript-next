@@ -11,8 +11,8 @@ namespace ls {
 class Array : public Value {
 public:
 
-	Token* opening_bracket;
-	Token* closing_bracket;
+	VirtualToken opening_bracket;
+	VirtualToken closing_bracket;
 	std::vector<std::unique_ptr<Value>> expressions;
 
 	Array(Environment& env);

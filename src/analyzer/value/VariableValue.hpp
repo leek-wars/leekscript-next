@@ -18,7 +18,7 @@ class VariableValue : public LeftValue {
 public:
 
 	std::string name;
-	Token* token;
+	VirtualToken token;
 	Variable* var;
 	int capture_index = 0;
 	VarScope scope;
@@ -30,7 +30,7 @@ public:
 	std::function<Compiler::value(Compiler&)> static_access_function = nullptr;
 	#endif
 
-	VariableValue(Environment& env, Token* token);
+	VariableValue(Environment& env, VirtualToken token);
 
 	virtual bool isLeftValue() const override;
 

@@ -513,7 +513,7 @@ llvm::BasicBlock* FunctionVersion::get_landing_pad(Compiler& c) {
 		c.delete_function_variables();
 		Compiler::value exception = {c.builder.CreateLoad(exception_slot), c.env.long_};
 		Compiler::value exception_line = {c.builder.CreateLoad(exception_line_slot), c.env.long_};
-		auto file = c.new_const_string(parent->token->location.file->path);
+		auto file = c.new_const_string(parent->file->path);
 		auto function_name = c.new_const_string(parent->name);
 
 		// auto eh_exception_type = llvm::FunctionType::get(c.env.i8_ptr->llvm(c), {}, false);

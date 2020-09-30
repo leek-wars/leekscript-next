@@ -5,7 +5,7 @@
 
 namespace ls {
 
-Return::Return(Environment& env, Token* token, std::unique_ptr<Value> v) : Instruction(env), token(token), expression(std::move(v)) {
+Return::Return(Environment& env, VirtualToken token, std::unique_ptr<Value> v) : Instruction(env), token(token), expression(std::move(v)) {
 	returning = true;
 	may_return = true;
 	jumping = true;

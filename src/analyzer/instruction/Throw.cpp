@@ -4,7 +4,7 @@
 
 namespace ls {
 
-Throw::Throw(Environment& env, Token* token, std::unique_ptr<Value> v) : Instruction(env), token(token), expression(std::move(v)) {
+Throw::Throw(Environment& env, VirtualToken token, std::unique_ptr<Value> v) : Instruction(env), token(token), expression(std::move(v)) {
 	throws = true;
 	jumping = true;
 }

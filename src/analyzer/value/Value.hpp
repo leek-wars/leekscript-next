@@ -12,6 +12,7 @@
 #include "../PrintOptions.hpp"
 #include "../semantic/Completion.hpp"
 #include "../semantic/Hover.hpp"
+#include "../lexical/VirtualToken.hpp"
 #if COMPILER
 #include "../../compiler/Compiler.hpp"
 #endif

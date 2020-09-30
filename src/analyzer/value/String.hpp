@@ -10,9 +10,9 @@ class Token;
 class String : public Value {
 public:
 
-	Token* token;
+	VirtualToken token;
 
-	String(Environment& env, Token* token);
+	String(Environment& env, VirtualToken token);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

@@ -10,9 +10,9 @@ namespace ls {
 class Nulll : public Value {
 public:
 
-	Token* token;
+	VirtualToken token;
 
-	Nulll(Environment& env, Token* token);
+	Nulll(Environment& env, VirtualToken token);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

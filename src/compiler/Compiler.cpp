@@ -1868,7 +1868,7 @@ void Compiler::insn_throw(Compiler::value v) {
 	} else {
 		delete_function_variables();
 		auto line = new_long(exception_line.top());
-		auto file = new_const_string(fun->parent->token->location.file->path);
+		auto file = new_const_string(fun->parent->file->path);
 		auto function_name = new_const_string(fun->parent->name);
 
 		auto ex = insn_call(env.i8_ptr, { new_integer(sizeof(vm::ExceptionObj)) }, "__cxa_allocate_exception");

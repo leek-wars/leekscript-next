@@ -12,7 +12,7 @@ class Environment;
 class Break : public Instruction {
 public:
 
-	Token* token;
+	VirtualToken token;
 	int deepness;
 
 	Break(Environment& env);

@@ -8,10 +8,10 @@ namespace ls {
 class Throw : public Instruction {
 public:
 
-	Token* token;
+	VirtualToken token;
 	std::unique_ptr<Value> expression;
 
-	Throw(Environment& env, Token* token, std::unique_ptr<Value> = nullptr);
+	Throw(Environment& env, VirtualToken token, std::unique_ptr<Value> = nullptr);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

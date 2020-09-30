@@ -3,6 +3,7 @@
 
 #include <string>
 #include "../../constants.h"
+#include "../lexical/VirtualToken.hpp"
 #include "Call.hpp"
 
 namespace ls {
@@ -32,7 +33,7 @@ enum class VarScope {
 class Variable {
 public:
 	const std::string name;
-	Token* token;
+	VirtualToken token;
 	VarScope scope;
 	int index;
 	int parent_index;
@@ -60,9 +61,9 @@ public:
 	LSClass* lsclass = nullptr;
 	#endif
 
-	Variable(std::string name, Token* token, VarScope scope, const Type* type, int index, Value* value, FunctionVersion* function, Block* block, Section* section, Class* clazz, Call call = {}, bool global = false);
+	Variable(std::string name, VirtualToken token, VarScope scope, const Type* type, int index, Value* value, FunctionVersion* function, Block* block, Section* section, Class* clazz, Call call = {}, bool global = false);
 	#if COMPILER
-	Variable(std::string name, Token* token, VarScope scope, const Type* type, int index, Value* value, FunctionVersion* function, Block* block, Section* section, Class* clazz, LSClass* lsclass, Call call = {});
+	Variable(std::string name, VirtualToken token, VarScope scope, const Type* type, int index, Value* value, FunctionVersion* function, Block* block, Section* section, Class* clazz, LSClass* lsclass, Call call = {});
 	#endif
 
 	Variable* get_root() const;

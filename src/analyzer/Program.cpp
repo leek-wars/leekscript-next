@@ -62,12 +62,16 @@ void Program::analyze(SyntaxicAnalyzer& syn, SemanticAnalyzer& sem, bool format,
 	result.errors.clear();
 	main_file->errors.clear();
 
-	std::unique_ptr<Block> block { syn.analyze(main_file) };
+	// Create main function
+	main_token = std::make_unique<Token>(TokenType::FUNCTION, main_file, 0, 0, 0, "function");
+	if (!main) {
+		main = std::make_unique<Function>(env, VirtualToken {}, main_file);
+	}
+
+	std::unique_ptr<Block> block { syn.analyze(main_file, this) };
 
 	result.errors = main_file->errors;
 
-	main_token = std::make_unique<Token>(TokenType::FUNCTION, main_file, 0, 0, 0, "function");
-	main = std::make_unique<Function>(env, main_token.get());
 	main->body = std::move(block);
 	main->is_main_function = true;
 	main->name = "main";
@@ -260,21 +264,21 @@ Variable* Program::get_operator(const std::string& name) {
 	if (o == ops.end()) return nullptr;
 
 	auto token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::FUNCTION, main_file, 0, 0, 0, "function")).get();
-	auto f = operators_functions.emplace_back(std::make_unique<Function>(env, token)).get();
+	auto f = operators_functions.emplace_back(std::make_unique<Function>(env, VirtualToken { main.get(), 0 }, main_file)).get();
 	auto v1_token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::IDENT, main_file, 0, 1, 0, "x")).get();
 	auto v2_token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::IDENT, main_file, 2, 1, 2, "y")).get();
-	f->addArgument(v1_token, nullptr, false);
-	f->addArgument(v2_token, nullptr, false);
+	f->addArgument(VirtualToken { main.get(), 0 }, nullptr, false);
+	f->addArgument(VirtualToken { main.get(), 2 }, nullptr, false);
 	f->body.reset(new Block(env, true));
 	auto ex = std::make_unique<Expression>(env);
 	auto op_token = operators_tokens.emplace_back(std::make_unique<Token>(token_types.at(std::distance(ops.begin(), o)), main_file, 1, 1, 1, name)).get();
-	ex->v1 = std::make_unique<VariableValue>(env, v1_token);
-	ex->v2 = std::make_unique<VariableValue>(env, v2_token);
-	ex->op = std::make_shared<Operator>(op_token);
+	ex->v1 = std::make_unique<VariableValue>(env, VirtualToken { main.get(), 0 });
+	ex->v2 = std::make_unique<VariableValue>(env, VirtualToken { main.get(), 2 });
+	ex->op = std::make_shared<Operator>(VirtualToken { main.get(), 1 });
 	f->body->add_instruction(std::make_unique<ExpressionInstruction>(env, std::move(ex)));
 	auto type = Type::fun(env.any, { env.any, env.any });
 
-	auto var = new Variable(name, token, VarScope::INTERNAL, type, 0, f, nullptr, nullptr, nullptr, nullptr);
+	auto var = new Variable(name, VirtualToken { main.get(), 0 }, VarScope::INTERNAL, type, 0, f, nullptr, nullptr, nullptr, nullptr);
 	operators.emplace(name, var);
 	return var;
 }

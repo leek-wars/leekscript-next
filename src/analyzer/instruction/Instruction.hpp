@@ -5,6 +5,7 @@
 #include <memory>
 #include "../../constants.h"
 #include "../lexical/Token.hpp"
+#include "../lexical/VirtualToken.hpp"
 #include "../../type/Type.hpp"
 #include "../PrintOptions.hpp"
 #include "../semantic/Completion.hpp"

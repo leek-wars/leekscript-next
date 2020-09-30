@@ -4,7 +4,7 @@
 
 namespace ls {
 
-Boolean::Boolean(Environment& env, Token* token) : Value(env), token(token) {
+Boolean::Boolean(Environment& env, VirtualToken token) : Value(env), token(token) {
 	this->value = token->type == TokenType::TRUE;
 	type = env.boolean;
 	constant = true;

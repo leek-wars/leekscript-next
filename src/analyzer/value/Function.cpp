@@ -28,14 +28,13 @@ namespace ls {
 
 int Function::id_counter = 0;
 
-Function::Function(Environment& env, Token* token) : Value(env), token(token) {
+Function::Function(Environment& env, VirtualToken token, File* file) : Value(env), file(file), token(token) {
 	parent = nullptr;
 	constant = true;
-	function_added = false;
 	callable = std::make_unique<Callable>();
 }
 
-void Function::addArgument(Token* name, Value* defaultValue, bool reference) {
+void Function::addArgument(VirtualToken name, Value* defaultValue, bool reference) {
 	arguments.push_back(name);
 	defaultValues.emplace_back(defaultValue);
 	references.push_back(reference);
@@ -146,11 +145,6 @@ r2('hello')
  */
 void Function::analyze(SemanticAnalyzer* analyzer) {
 	// std::cout << "Function " << name << " ::analyze()" << std::endl;
-
-	if (!function_added) {
-		analyzer->add_function(this);
-		function_added = true;
-	}
 
 	// Captures
 	for (auto& capture : captures) {
@@ -371,9 +365,13 @@ void Function::export_context(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> Function::clone(Block* parent) const {
-	auto f = std::make_unique<Function>(type->env, token);
+	auto f = std::make_unique<Function>(type->env, token, file);
 	f->lambda = lambda;
 	f->name = name;
+	f->file = file;
+	f->hash = hash;
+	f->token_count = token_count;
+	f->token_offset = token_offset;
 	f->default_version.reset(new FunctionVersion(type->env, unique_static_cast<Block>(default_version->body->clone(nullptr))));
 	f->default_version->parent = f.get();
 	f->default_version->type = default_version->type;

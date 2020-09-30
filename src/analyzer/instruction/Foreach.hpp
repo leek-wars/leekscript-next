@@ -42,10 +42,10 @@ enum class ForeachMode {
 
 class Foreach : public Instruction {
 public:
-	Token* token = nullptr;
+	VirtualToken token;
 	std::unique_ptr<Block> wrapper_block;
-	Token* key = nullptr;
-	Token* value = nullptr;
+	VirtualToken key;
+	VirtualToken value;
 	std::unique_ptr<Value> container;
 	std::unique_ptr<Block> body;
 	std::vector<Mutation> mutations;

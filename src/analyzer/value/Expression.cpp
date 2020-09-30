@@ -24,7 +24,7 @@ void Expression::append(std::shared_ptr<Operator> op, Value* exp) {
 		v2.reset(exp);
 		return;
 	}
-	if (!parenthesis and (op->priority < this->op->priority or (op->priority == this->op->priority and op->character == "="))) {
+	if (!parenthesis and (op->priority < this->op->priority or (op->priority == this->op->priority and op->token->content == "="))) {
 		/*
 		 * We already have '5 + 2' for example,
 		 * and try to add a operator with a higher priority,
@@ -198,7 +198,7 @@ void Expression::analyze(SemanticAnalyzer* analyzer) {
 		// std::cout << "class_name = " << class_name << std::endl;
 		if (analyzer->env.std.classes.find(class_name) != analyzer->env.std.classes.end()) {
 			auto object_class = analyzer->env.std.classes[class_name]->clazz.get();
-			auto call = object_class->getOperator(analyzer, op->character);
+			auto call = object_class->getOperator(analyzer, op->token->content);
 			// std::cout << "Expression Call: " << call << std::endl;
 			callable_version = call.resolve(analyzer, {v1_type, v2_type});
 			if (callable_version) {
@@ -222,7 +222,7 @@ void Expression::analyze(SemanticAnalyzer* analyzer) {
 		}
 	}
 	// std::cout << "No such operator " << v1->type << " " << op->character << " " << v2->type << std::endl;
-	analyzer->add_error({Error::Type::NO_SUCH_OPERATOR, ErrorLevel::ERROR, location(), location(), {v1->type->to_string(), op->character, v2->type->to_string()}});
+	analyzer->add_error({Error::Type::NO_SUCH_OPERATOR, ErrorLevel::ERROR, location(), location(), {v1->type->to_string(), op->token->content, v2->type->to_string()}});
 }
 
 Hover Expression::hover(SemanticAnalyzer& analyzer, size_t position) const {

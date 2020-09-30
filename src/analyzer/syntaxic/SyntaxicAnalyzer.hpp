@@ -2,6 +2,7 @@
 #define SYNTAXIC_ANALYZER_HPP
 
 #include <vector>
+#include <stack>
 
 #include "../value/Match.hpp"
 #include "../resolver/Resolver.hpp"
@@ -40,10 +41,13 @@ class SyntaxicAnalyzer {
 	unsigned i;
 	long time;
 	std::vector<std::pair<unsigned,size_t>> stack;
+	std::stack<Function*> functions;
 	Token* finished_token;
 	File* file;
+	Program* program;
 	std::vector<Instruction*> loops;
 	File* root_file = nullptr;
+	Function* current_function = nullptr;
 
 public:
 
@@ -51,10 +55,10 @@ public:
 
 	SyntaxicAnalyzer(Environment& env, Resolver* resolver, File* root_file);
 
-	Block* analyze(File* file);
+	Block* analyze(File* file, Program* program);
 
 	Block* eatMain(File* file);
-	Token* eatIdent();
+	VirtualToken eatIdent();
 	Value* eatExpression(Block* block, bool pipe_opened = false, bool set_opened = false, Value* initial = nullptr, bool comma_list = false);
 	Value* eatSimpleExpression(Block* block, bool pipe_opened = false, bool set_opened = false, bool comma_list = false, Value* initial = nullptr);
 	Value* eatValue(Block* block, bool comma_list = false);
@@ -78,7 +82,7 @@ public:
 	Continue* eatContinue(Block* block);
 	ClassDeclaration* eatClassDeclaration(Block* block);
 	VariableDeclaration* eatVariableDeclaration(Block* block);
-	Function* eatFunction(Block* block, Token* token);
+	Function* eatFunction(Block* block, VirtualToken token, bool global_function = false);
 	VariableDeclaration* eatFunctionDeclaration(Block* block);
 	Instruction* eatInstruction(Block* block);
 	Value* eatLambdaContinue(Block* block, bool parenthesis, Ident ident, Value* expression, bool comma_list = false);
@@ -94,8 +98,10 @@ public:
 	Token* eat_get();
 	void eat();
 	Token* eat_get(TokenType type);
+	VirtualToken eat_get_virtual(TokenType type = TokenType::DONT_CARE);
 	void eat(TokenType type);
 	Token* nextTokenAt(int pos);
+	int compute_hash(int start_pos, int end_pos) const;
 };
 
 }

@@ -21,7 +21,7 @@
 
 namespace ls {
 
-FunctionCall::FunctionCall(Environment& env, Token* t) : Value(env), token(t), callable_version(env) {
+FunctionCall::FunctionCall(Environment& env, VirtualToken t) : Value(env), token(t), callable_version(env) {
 	std_func = nullptr;
 	this_ptr = nullptr;
 	constant = false;

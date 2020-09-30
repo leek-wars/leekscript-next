@@ -17,6 +17,7 @@ public:
 	std::string content;
 	Location location;
 	unsigned size;
+	int hash;
 
 	Token(TokenType type, File* file, size_t raw, size_t line, size_t character, const std::string& content);
 };

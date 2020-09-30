@@ -20,13 +20,16 @@ public:
 	std::string name;
 	std::string internal_name;
 	bool lambda = false;
-	Token* token = nullptr;
-	std::vector<Token*> arguments;
+	File* file = nullptr;
+	VirtualToken token;
+	std::vector<VirtualToken> arguments;
 	std::vector<std::unique_ptr<Value>> defaultValues;
 	std::vector<bool> references;
 	std::unique_ptr<Block> body;
+	int hash = 0;
+	int token_count = 0;
+	unsigned token_offset = 0;
 
-	bool function_added;
 	Function* parent;
 	bool is_main_function = false;
 	std::unique_ptr<FunctionVersion> default_version;
@@ -40,9 +43,9 @@ public:
 	bool captures_compiled = false;
 	std::unique_ptr<Callable> callable;
 
-	Function(Environment& env, Token* token);
+	Function(Environment& env, VirtualToken token, File* file);
 
-	void addArgument(Token* token, Value* defaultValue, bool reference);
+	void addArgument(VirtualToken token, Value* defaultValue, bool reference);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

@@ -25,7 +25,7 @@ void Foreach::print(std::ostream& os, int indent, PrintOptions options) const {
 	if (options.sections) {
 		os << condition_section->color << "┃" << END_COLOR << tabs(indent + 1);
 	}
-	if (key != nullptr) {
+	if (key) {
 		os << key->content;
 		if (options.debug) {
 			os << " " << container->type->key();
@@ -68,7 +68,7 @@ void Foreach::pre_analyze(SemanticAnalyzer* analyzer) {
 	if (not value_var) {
 		analyzer->enter_block(body.get());
 		analyzer->enter_section(body->sections.front().get());
-		if (key != nullptr) {
+		if (key) {
 			key_var = analyzer->add_var(key, env.void_, nullptr);
 			key_var->injected = key_var->loop_variable = true;
 			assert(key_var);
@@ -143,7 +143,7 @@ void Foreach::analyze(SemanticAnalyzer* analyzer, const Type* req_type) {
 
 	key_type = container_iterable_types->key();
 	value_type = container_iterable_types->element();
-	if (key != nullptr) {
+	if (key) {
 		key_var->type = key_type;
 	}
 	value_var->type = value_type;
@@ -184,7 +184,7 @@ void Foreach::analyze(SemanticAnalyzer* analyzer, const Type* req_type) {
 
 		key_type = container_iterable_types->key();
 		value_type = container_iterable_types->element();
-		if (key != nullptr) {
+		if (key) {
 			key_var->type = key_type;
 		}
 		value_var->type = value_type;

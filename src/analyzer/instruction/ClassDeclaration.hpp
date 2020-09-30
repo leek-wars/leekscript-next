@@ -13,12 +13,12 @@ class LSClass;
 class ClassDeclaration : public Instruction {
 public:
 
-	Token* token;
+	VirtualToken token;
 	std::string name;
 	std::vector<std::unique_ptr<VariableDeclaration>> fields;
 	Variable* var;
 
-	ClassDeclaration(Environment& env, Token* token);
+	ClassDeclaration(Environment& env, VirtualToken token);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

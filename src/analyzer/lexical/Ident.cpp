@@ -2,7 +2,7 @@
 
 namespace ls {
 
-Ident::Ident(Token* token) {
+Ident::Ident(VirtualToken token) {
 	this->token = token;
 }
 

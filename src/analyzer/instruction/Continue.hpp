@@ -9,7 +9,7 @@ class Continue : public Instruction {
 public:
 
 	int deepness;
-	Token* token = nullptr;
+	VirtualToken token;
 
 	Continue(Environment& env);
 

@@ -28,7 +28,7 @@ public:
 	std::unique_ptr<Function> main;
 	std::unique_ptr<Token> main_token;
 	const Type* type;
-	std::vector<Function*> functions;
+	std::unordered_map<std::string, Function*> functions;
 	std::string file_name;
 	std::unordered_map<std::string, std::unique_ptr<Variable>> globals;
 	std::unordered_map<std::string, std::unique_ptr<Variable>> operators;

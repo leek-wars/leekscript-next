@@ -4,7 +4,7 @@
 
 namespace ls {
 
-Nulll::Nulll(Environment& env, Token* token) : Value(env), token(token) {
+Nulll::Nulll(Environment& env, VirtualToken token) : Value(env), token(token) {
 	type = env.null;
 	constant = true;
 }

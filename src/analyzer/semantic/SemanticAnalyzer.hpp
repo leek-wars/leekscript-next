@@ -31,7 +31,6 @@ public:
 
 	Environment& env;
 	Program* program = nullptr;
-	std::vector<Function*> functions;
 	std::vector<std::vector<Block*>> blocks;
 	std::vector<std::vector<Section*>> sections;
 	std::vector<std::vector<Instruction*>> loops;
@@ -59,9 +58,9 @@ public:
 	void leave_loop();
 	bool in_loop(int deepness) const;
 
-	Variable* add_var(Token*, const Type*, Value*);
-	Variable* add_var(Token* token, Variable*);
-	Variable* add_global_var(Token*, const Type*, Value*);
+	Variable* add_var(VirtualToken, const Type*, Value*);
+	Variable* add_var(VirtualToken token, Variable*);
+	Variable* add_global_var(VirtualToken, const Type*, Value*);
 	Variable* get_var(const std::string& name);
 	Variable* update_var(Variable* variable, bool add_mutation = true);
 

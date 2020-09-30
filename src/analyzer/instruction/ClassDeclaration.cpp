@@ -3,7 +3,7 @@
 
 namespace ls {
 
-ClassDeclaration::ClassDeclaration(Environment& env, Token* token) : Instruction(env), token(token) {
+ClassDeclaration::ClassDeclaration(Environment& env, VirtualToken token) : Instruction(env), token(token) {
 	name = token->content;
 	var = nullptr;
 }

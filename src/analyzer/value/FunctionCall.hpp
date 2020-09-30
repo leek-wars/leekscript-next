@@ -15,11 +15,11 @@ class CallableVersion;
 
 class FunctionCall : public Value {
 public:
-	Token* token;
+	VirtualToken token;
 	std::unique_ptr<Value> function;
 	std::vector<std::unique_ptr<Value>> arguments;
-	Token* opening_parenthesis;
-	Token* closing_parenthesis;
+	VirtualToken opening_parenthesis;
+	VirtualToken closing_parenthesis;
 	bool is_native = false;
 	const Type* return_type;
 	void* std_func;
@@ -37,7 +37,7 @@ public:
 	bool include = false; // Is a include instruction?
 	File* included_file = nullptr; // Included file in case of include
 
-	FunctionCall(Environment& env, Token* t);
+	FunctionCall(Environment& env, VirtualToken t);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

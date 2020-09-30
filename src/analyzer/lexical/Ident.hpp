@@ -1,16 +1,16 @@
 #ifndef IDENT_HPP_
 #define IDENT_HPP_
 
-#include "Token.hpp"
+#include "VirtualToken.hpp"
 
 namespace ls {
 
 class Ident {
 public:
 
-	Token* token;
+	VirtualToken token;
 
-	Ident(Token* token);
+	Ident(VirtualToken token);
 	virtual ~Ident();
 };
 

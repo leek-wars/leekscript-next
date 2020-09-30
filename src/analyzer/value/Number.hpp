@@ -13,7 +13,7 @@ namespace ls {
 class Number : public Value {
 public:
 
-	Token* token;
+	VirtualToken token;
 	std::string value;
 	std::string clean_value;
 	int base = 10;
@@ -27,7 +27,7 @@ public:
 	#endif
 	bool pointer = false;
 
-	Number(Environment& env, std::string value, Token* token);
+	Number(Environment& env, std::string value, VirtualToken token);
 	virtual ~Number();
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;

@@ -26,7 +26,7 @@ void SemanticAnalyzer::analyze(Program* program) {
 	if (not env.legacy) {
 		for (const auto& clazz : env.std.classes) {
 			auto const_class = env.const_class(clazz.first);
-			program->globals.emplace(clazz.first, new Variable(clazz.first, nullptr, VarScope::INTERNAL, const_class, 0, nullptr, nullptr, nullptr, nullptr, clazz.second->clazz.get()));
+			program->globals.emplace(clazz.first, new Variable(clazz.first, {}, VarScope::INTERNAL, const_class, 0, nullptr, nullptr, nullptr, nullptr, clazz.second->clazz.get()));
 		}
 	}
 
@@ -41,7 +41,7 @@ void SemanticAnalyzer::analyze(Program* program) {
 		for (auto& var : program->context->vars) {
 			// std::cout << "Add context var " << var.first << std::endl;
 			var.second.token = std::make_unique<Token>(TokenType::IDENT, program->main_file, 0, 0, 0, var.first);
-			var.second.variable = add_var(var.second.token.get(), var.second.type, nullptr);
+			var.second.variable = add_var(VirtualToken { program->main.get(), 0 }, var.second.type, nullptr);
 			var.second.variable->injected = true;
 			// std::cout << "variable added " << var.second.variable << " " << (void*) var.second.variable << std::endl;
 		}
@@ -51,7 +51,6 @@ void SemanticAnalyzer::analyze(Program* program) {
 	leave_function();
 
 	program->main->analyze(this);
-	program->functions = functions;
 }
 
 void SemanticAnalyzer::enter_function(FunctionVersion* f) {
@@ -202,7 +201,7 @@ Variable* SemanticAnalyzer::get_var(const std::string& v) {
 	return nullptr;
 }
 
-Variable* SemanticAnalyzer::add_var(Token* v, const Type* type, Value* value) {
+Variable* SemanticAnalyzer::add_var(VirtualToken v, const Type* type, Value* value) {
 	if (program->globals.find(v->content) != program->globals.end()) {
 		add_error({Error::Type::VARIABLE_ALREADY_DEFINED, ErrorLevel::ERROR, v->location, v->location, {v->content}});
 		return nullptr;
@@ -223,7 +222,7 @@ Variable* SemanticAnalyzer::add_var(Token* v, const Type* type, Value* value) {
 	return var;
 }
 
-Variable* SemanticAnalyzer::add_var(Token* v, Variable* var) {
+Variable* SemanticAnalyzer::add_var(VirtualToken v, Variable* var) {
 	if (program->globals.find(v->content) != program->globals.end()) {
 		add_error({Error::Type::VARIABLE_ALREADY_DEFINED, ErrorLevel::ERROR, v->location, v->location, {v->content}});
 		return nullptr;
@@ -245,7 +244,7 @@ Variable* SemanticAnalyzer::add_var(Token* v, Variable* var) {
 	return var;
 }
 
-Variable* SemanticAnalyzer::add_global_var(Token* v, const Type* type, Value* value) {
+Variable* SemanticAnalyzer::add_global_var(VirtualToken v, const Type* type, Value* value) {
 	// std::cout << "blocks " << blocks.size() << std::endl;
 	for (const auto& section : blocks.begin()->front()->sections) {
 		auto& vars = section->variables;

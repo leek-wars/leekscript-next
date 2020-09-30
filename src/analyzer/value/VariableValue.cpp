@@ -12,7 +12,7 @@
 
 namespace ls {
 
-VariableValue::VariableValue(Environment& env, Token* token) : LeftValue(env), token(token) {
+VariableValue::VariableValue(Environment& env, VirtualToken token) : LeftValue(env), token(token) {
 	this->name = token->content;
 	this->var = nullptr;
 	constant = false;

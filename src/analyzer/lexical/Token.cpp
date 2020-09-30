@@ -24,6 +24,12 @@ Token::Token(TokenType type, File* file, size_t raw, size_t line, size_t charact
 	} else {
 		this->size = content.size();
 	}
+
+	hash = 7;
+	hash = 31 * hash + (int) type;
+	hash = 31 * hash + (int) std::hash<std::string>{}(content);
+	// hash = 31 * hash + location.start.raw;
+	// hash = 31 * hash + location.end.raw;
 }
 
 }

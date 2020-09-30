@@ -10,7 +10,7 @@
 
 namespace ls {
 
-ObjectAccess::ObjectAccess(Environment& env, Token* token) : LeftValue(env), field(token) {
+ObjectAccess::ObjectAccess(Environment& env, VirtualToken token) : LeftValue(env), field(token) {
 	attr_addr = nullptr;
 	throws = true; // TODO doesn't always throw
 	callable = std::make_unique<Callable>();

@@ -15,8 +15,8 @@ class ObjectAccess : public LeftValue {
 public:
 
 	std::unique_ptr<Value> object;
-	Token* dot;
-	Token* field;
+	VirtualToken dot;
+	VirtualToken field;
 	std::string object_class_name;
 	std::string class_name;
 	bool class_method = false;
@@ -32,7 +32,7 @@ public:
 	std::function<Compiler::value(Compiler&, Compiler::value)> access_function = nullptr;
 	#endif
 
-	ObjectAccess(Environment& env, Token* token);
+	ObjectAccess(Environment& env, VirtualToken token);
 	virtual ~ObjectAccess();
 
 	virtual bool isLeftValue() const override;

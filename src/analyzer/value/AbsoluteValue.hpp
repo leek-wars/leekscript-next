@@ -11,8 +11,8 @@ class AbsoluteValue : public Value {
 public:
 
 	std::unique_ptr<Value> expression;
-	Token* open_pipe;
-	Token* close_pipe;
+	VirtualToken open_pipe;
+	VirtualToken close_pipe;
 
 	AbsoluteValue(Environment& env);
 

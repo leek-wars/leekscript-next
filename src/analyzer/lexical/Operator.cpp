@@ -63,17 +63,16 @@ static int operator_priorities[] = {
 	9, /* %%= */
 };
 
-Operator::Operator(Token* token) : token(token) {
-	this->type = token->type;
-	this->character = token->content;
+Operator::Operator(VirtualToken token) : token(token) {
 	this->priority = operator_priorities[(int) token->type];
 
+	this->type = token->type;
 	this->reversed = type == TokenType::IN;
 //	cout << "operator " << character << " (" << (int)token->type << ") : " << priority << endl;
 }
 
 void Operator::print(std::ostream& os) {
-	os << character;
+	os << token->content;
 }
 
 }
