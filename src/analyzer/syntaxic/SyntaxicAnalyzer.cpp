@@ -687,8 +687,10 @@ Value* SyntaxicAnalyzer::eatSimpleExpression(Block* block, bool pipe_opened, boo
 
 	while (t->type == TokenType::OPEN_BRACKET || t->type == TokenType::OPEN_PARENTHESIS || t->type == TokenType::DOT) {
 
-		// if (t->location.start.column != last_character + last_size)
-		// 	break;
+		// The array access, function call and object access keyword must be directly after the value
+		if (t->location.start.column != last_character + last_size) {
+			break;
+		}
 
 		switch (t->type) {
 			case TokenType::OPEN_BRACKET: {
