@@ -143,7 +143,7 @@ int CLI::execute_snippet(std::string code, CLI_options options) {
 	if (not options.execute_ir) {
 		env.analyze(program, options.format, options.debug, options.sections);
 	}
-	env.compile(program, options.format, options.debug, options.operations, false, options.intermediate, options.optimization, options.execute_ir, options.execute_bitcode);
+	env.compile(program, options.format, options.debug, options.operations, options.bitcode, options.intermediate, options.optimization, options.execute_ir, options.execute_bitcode);
 	if (not options.execute_ir) {
 		env.execute(program, options.debug, options.operations, false, options.intermediate, options.optimization);
 	}
