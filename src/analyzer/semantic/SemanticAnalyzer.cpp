@@ -259,10 +259,6 @@ Variable* SemanticAnalyzer::add_global_var(VirtualToken v, const Type* type, Val
 	return var.get();
 }
 
-void SemanticAnalyzer::add_function(Function* l) {
-	functions.push_back(l);
-}
-
 Variable* SemanticAnalyzer::update_var(Variable* variable, bool add_mutation) {
 	if (not variable) return nullptr;
 	if (variable->loop_variable) return variable;
