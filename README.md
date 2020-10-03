@@ -107,6 +107,12 @@ make callgrind # valgrind callgrind tool
 ### Clang C++ IR output
 [https://godbolt.org/](https://godbolt.org/) is a great tool to explore C/C++ generated assembly. Using `-S -emit-llvm -g0 -O1` options, you can discover LLVM IR for given C++ code.
 
+### Output assembly
+```
+leekscript -b "[3, 4, 5] ~~ x -> x ** 2"
+clang-9 -S snippet.bc -o snippet.s -fomit-frame-pointer
+```
+
 For a detailed and more technical list of troubleshooting entries, read [document/troubleshooting.md](document/troubleshooting.md).
 
 If you don't find any answer in these documents, check [issues](https://github.com/leek-wars/leekscript/issues) page on GitHub and feel free to post a new one.
