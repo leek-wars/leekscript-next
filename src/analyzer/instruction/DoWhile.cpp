@@ -7,7 +7,7 @@
 
 namespace ls {
 
-DoWhile::DoWhile(Environment& env) : Instruction(env) {
+DoWhile::DoWhile(Environment& env, VirtualToken token) : Instruction(env), token(token) {
 	body = nullptr;
 	jumping = true;
 }
@@ -140,8 +140,7 @@ Compiler::value DoWhile::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Instruction> DoWhile::clone(Block* parent) const {
-	auto w = std::make_unique<DoWhile>(type->env);
-	w->token = token;
+	auto w = std::make_unique<DoWhile>(type->env, token);
 
 	w->end_section = new Section(type->env, "end");
 

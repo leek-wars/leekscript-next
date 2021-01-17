@@ -4,7 +4,7 @@
 
 namespace ls {
 
-Continue::Continue(Environment& env) : Instruction(env) {
+Continue::Continue(Environment& env, VirtualToken token) : Instruction(env), token(token) {
 	deepness = 1;
 	jumping = true;
 	jump_to_existing_section = true;
@@ -40,9 +40,8 @@ Compiler::value Continue::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Instruction> Continue::clone(Block* parent) const {
-	auto c = std::make_unique<Continue>(type->env);
+	auto c = std::make_unique<Continue>(type->env, token);
 	c->deepness = deepness;
-	c->token = token;
 	return c;
 }
 

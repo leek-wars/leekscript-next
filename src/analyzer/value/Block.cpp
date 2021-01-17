@@ -13,7 +13,8 @@
 
 namespace ls {
 
-Block::Block(Environment& env, bool is_function_block, bool init_first_section) : Value(env), is_function_block(is_function_block)
+Block::Block(Environment& env, VirtualToken opening_brace, VirtualToken closing_brace, bool is_function_block, bool init_first_section) :
+	Value(env), opening_brace(opening_brace), closing_brace(closing_brace), is_function_block(is_function_block)
 #if COMPILER
 , return_value(env)
 #endif
@@ -220,21 +221,21 @@ Completion Block::autocomplete(SemanticAnalyzer& analyzer, size_t position) cons
 	// Return variables accessible from the block
 	Completion completion { analyzer.env };
 	Position pos { 0, 0, 0 };
-	Location location { nullptr, pos, pos };
+	Location loc { location().file, pos, pos };
 	for (const auto& variable : variables) {
-		completion.items.push_back({ variable.first, CompletionType::VARIABLE, variable.second->type, location });
+		completion.items.push_back({ variable.first, CompletionType::VARIABLE, variable.second->type, loc });
 	}
 	for (const auto& global : analyzer.program->globals) {
 		if (global.second->clazz) {
 			for (const auto& method : global.second->clazz->methods) {
 				for (const auto& version : method.second.versions) {
 					if (version.flags & Module::PRIVATE) continue;
-					completion.items.push_back({ method.first, CompletionType::METHOD, version.type, location });
+					completion.items.push_back({ method.first, CompletionType::METHOD, version.type, loc });
 				}
 			}
 			for (const auto& field : global.second->clazz->static_fields) {
 				if (field.second.flags & Module::PRIVATE) continue;
-				completion.items.push_back({ field.first, CompletionType::FIELD, field.second.type, location });
+				completion.items.push_back({ field.first, CompletionType::FIELD, field.second.type, loc });
 			}
 		}
 	}
@@ -248,16 +249,16 @@ Hover Block::hover(SemanticAnalyzer& analyzer, size_t position) const {
 			return instruction->hover(analyzer, position);
 		}
 	}
-	return { analyzer.env };
+	return { analyzer.env, opening_brace.function.file };
 }
 
-Hover Block::hover(SemanticAnalyzer& analyzer, File* file, size_t position) const {
+Hover Block::hover(SemanticAnalyzer& analyzer, File& file, size_t position) const {
 	for (const auto& instruction : instructions) {
-		if (instruction->location().file == file and instruction->location().contains(position)) {
+		if (&instruction->location().file == &file and instruction->location().contains(position)) {
 			return instruction->hover(analyzer, position);
 		}
 	}
-	return { analyzer.env };
+	return { analyzer.env, opening_brace.function.file };
 }
 
 #if COMPILER
@@ -355,9 +356,7 @@ void Block::compile_end(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> Block::clone(Block* parent) const {
-	auto b = std::make_unique<Block>(type->env, is_function_block);
-	b->opening_brace = opening_brace;
-	b->closing_brace = closing_brace;
+	auto b = std::make_unique<Block>(type->env, opening_brace, closing_brace, is_function_block);
 	for (const auto& instruction : instructions) {
 		b->add_instruction(instruction->clone(b.get()));
 	}

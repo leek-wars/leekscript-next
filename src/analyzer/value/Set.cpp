@@ -4,7 +4,9 @@
 
 namespace ls {
 
-Set::Set(Environment& env) : Value(env) {}
+Set::Set(Environment& env, VirtualToken opening_chevron, VirtualToken closing_chevron) :
+	Value(env), opening_chevron(opening_chevron), closing_chevron(closing_chevron)
+{}
 
 void Set::print(std::ostream& os, int indent, PrintOptions options) const {
 	os << "<";
@@ -17,7 +19,7 @@ void Set::print(std::ostream& os, int indent, PrintOptions options) const {
 }
 
 Location Set::location() const {
-	return {nullptr, {0, 0, 0}, {0, 0, 0}}; // TODO
+	return { opening_chevron->location.file, opening_chevron->location.start, closing_chevron->location.end };
 }
 
 void Set::pre_analyze(SemanticAnalyzer* analyzer) {
@@ -96,7 +98,7 @@ Compiler::value Set::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> Set::clone(Block* parent) const {
-	auto s = std::make_unique<Set>(type->env);
+	auto s = std::make_unique<Set>(type->env, opening_chevron, closing_chevron);
 	for (const auto& v : expressions) {
 		s->expressions.push_back(v->clone(parent));
 	}

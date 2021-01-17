@@ -15,7 +15,7 @@ public:
 	VirtualToken token;
 	int deepness;
 
-	Break(Environment& env);
+	Break(Environment& env, VirtualToken token);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

@@ -15,7 +15,7 @@ public:
 	VirtualToken opening_brace;
 	VirtualToken closing_brace;
 
-	Object(Environment& env);
+	Object(Environment& env, VirtualToken opening_brace, VirtualToken closing_brace);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

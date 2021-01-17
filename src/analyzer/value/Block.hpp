@@ -32,7 +32,7 @@ public:
 	Compiler::value return_value;
 	#endif
 
-	Block(Environment& env, bool is_function_block = false, bool init_first_section = true);
+	Block(Environment& env, VirtualToken opening_brace, VirtualToken closing_brace, bool is_function_block = false, bool init_first_section = true);
 
 	void setSection(std::unique_ptr<Section> section);
 
@@ -50,7 +50,7 @@ public:
 	virtual void analyze(SemanticAnalyzer* analyzer) override;
 	virtual Completion autocomplete(SemanticAnalyzer& analyzer, size_t position) const override;
 	virtual Hover hover(SemanticAnalyzer& analyzer, size_t position) const override;
-	Hover hover(SemanticAnalyzer& analyzer, File* file, size_t position) const;
+	Hover hover(SemanticAnalyzer& analyzer, File& file, size_t position) const;
 
 	#if COMPILER
 	Compiler::value compile(Compiler&) const override;

@@ -182,7 +182,8 @@ ls::Result Test::Input::run(bool display_errors, bool ops) {
 
 	auto& env = test->getEnv(v1);
 	env.operation_limit = ops ? ls::VM::DEFAULT_OPERATION_LIMIT : this->operation_limit;
-	ls::Program program { env, code, file_name };
+	ls::File file { env, file_name, code };
+	ls::Program program { env, file };
 	program.context = ctx;
 	env.analyze(program);
 	env.compile(program);
@@ -325,7 +326,8 @@ void Test::Input::type(const ls::Type* type) {
 	auto& env = test->getEnv(v1);
 
 	test->total++;
-	ls::Program program { env, code, file_name };
+	ls::File file { env, file_name, code };
+	ls::Program program { env, file };
 	program.context = ctx;
 	env.analyze(program);
 
@@ -371,7 +373,7 @@ void Test::Input::error(ls::Error::Type expected_type, std::vector<std::string>&
 	auto expected_message = ls::Error::build_message(expected_type, parameters);
 
 	if (result.errors.size()) {
-		ls::Error e = result.errors[0];
+		auto e = *std::begin(result.errors);
 		if (expected_type != e.type or parameters != e.parameters) {
 			fail(expected_message, e.message());
 		} else {

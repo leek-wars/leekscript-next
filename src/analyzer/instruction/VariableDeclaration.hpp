@@ -21,7 +21,7 @@ public:
 	std::map<std::string, Variable*> global_vars;
 	std::map<std::string, Variable*> vars;
 
-	VariableDeclaration(Environment& env);
+	VariableDeclaration(Environment& env, VirtualToken keyword);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

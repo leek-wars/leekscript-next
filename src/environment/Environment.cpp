@@ -109,7 +109,7 @@ Environment::~Environment() {
 
 void Environment::analyze(Program& program, bool format, bool debug, bool sections) {
 	auto resolver = new Resolver();
-	SyntaxicAnalyzer syn { *this, resolver, program.main_file };
+	SyntaxicAnalyzer syn { *this, resolver, program.file, program.file };
 	SemanticAnalyzer sem { *this };
 	program.analyze(syn, sem, format, debug, sections);
 	delete resolver;
@@ -120,7 +120,7 @@ Completion Environment::autocomplete(Program& program, size_t position) {
 	return program.autocomplete(sem, position);
 }
 
-Hover Environment::hover(Program& program, File* file, size_t position) {
+Hover Environment::hover(Program& program, File& file, size_t position) {
 	SemanticAnalyzer sem { *this };
 	return program.hover(sem, file, position);
 }

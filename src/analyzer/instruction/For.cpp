@@ -8,7 +8,7 @@
 
 namespace ls {
 
-For::For(Environment& env) : Instruction(env) {
+For::For(Environment& env, VirtualToken token) : Instruction(env), token(token) {
 	jumping = true;
 }
 
@@ -303,12 +303,11 @@ Compiler::value For::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Instruction> For::clone(Block* parent) const {
-	auto f = std::make_unique<For>(type->env);
-	f->token = token;
+	auto f = std::make_unique<For>(type->env, token);
 
 	auto current_section = parent->sections.back().get();
 
-	f->init = std::make_unique<Block>(type->env);
+	f->init = std::make_unique<Block>(type->env, VirtualToken { token.function }, VirtualToken { token.function });
 
 	auto init_section = f->init->sections[0].get();
 	init_section->name = "init";
@@ -326,7 +325,7 @@ std::unique_ptr<Instruction> For::clone(Block* parent) const {
 	}
 
 	// increment
-	auto increment_block = new Block(type->env);
+	auto increment_block = new Block(type->env, VirtualToken { token.function }, VirtualToken { token.function });
 	increment_block->sections.front()->name = "increment";
 	f->continue_section = increment_block->sections.front().get();
 	for (const auto& instruction : increment->instructions) {

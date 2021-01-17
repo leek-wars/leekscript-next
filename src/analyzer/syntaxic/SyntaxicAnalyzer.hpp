@@ -43,21 +43,20 @@ class SyntaxicAnalyzer {
 	std::vector<std::pair<unsigned,size_t>> stack;
 	std::stack<Function*> functions;
 	Token* finished_token;
-	File* file;
-	Program* program;
+	File& file;
+	File& root_file;
 	std::vector<Instruction*> loops;
-	File* root_file = nullptr;
 	Function* current_function = nullptr;
 
 public:
 
 	Environment& env;
 
-	SyntaxicAnalyzer(Environment& env, Resolver* resolver, File* root_file);
+	SyntaxicAnalyzer(Environment& env, Resolver* resolver, File& file, File& root_file);
 
-	Block* analyze(File* file, Program* program);
+	Block* analyze();
 
-	Block* eatMain(File* file);
+	Block* eatMain();
 	VirtualToken eatIdent();
 	Value* eatExpression(Block* block, bool pipe_opened = false, bool set_opened = false, Value* initial = nullptr, bool comma_list = false);
 	Value* eatSimpleExpression(Block* block, bool pipe_opened = false, bool set_opened = false, bool comma_list = false, Value* initial = nullptr);
@@ -82,7 +81,7 @@ public:
 	Continue* eatContinue(Block* block);
 	ClassDeclaration* eatClassDeclaration(Block* block);
 	VariableDeclaration* eatVariableDeclaration(Block* block);
-	Function* eatFunction(Block* block, VirtualToken token, bool global_function = false);
+	Function* eatFunction(Block* block, bool global_function = false);
 	VariableDeclaration* eatFunctionDeclaration(Block* block);
 	Instruction* eatInstruction(Block* block);
 	Value* eatLambdaContinue(Block* block, bool parenthesis, Ident ident, Value* expression, bool comma_list = false);
@@ -99,6 +98,7 @@ public:
 	void eat();
 	Token* eat_get(TokenType type);
 	VirtualToken eat_get_virtual(TokenType type = TokenType::DONT_CARE);
+	VirtualToken get_null_token();
 	void eat(TokenType type);
 	Token* nextTokenAt(int pos);
 	int compute_hash(int start_pos, int end_pos) const;

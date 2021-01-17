@@ -17,19 +17,21 @@ struct Position {
 		line(line), column(column), raw(raw) {}
 
 	bool operator == (const Position&) const;
+	bool operator < (const Position&) const;
 
 	Position after() const;
 	Json json() const;
 };
 
 struct Location {
-	File* file = nullptr;
+	File& file;
 	Position start;
 	Position end;
-	Location() {}
-	Location(File* file, Position start, Position end) : file(file), start(start), end(end) {}
+	Location(File& file) : file(file) {}
+	Location(File& file, Position start, Position end) : file(file), start(start), end(end) {}
 
 	bool operator == (const Location&) const;
+	bool operator < (const Location&) const;
 
 	bool contains(size_t position) const;
 	Location after() const;

@@ -24,15 +24,14 @@ private:
 public:
 
 	Environment& env;
-	std::string code; // The program code
-	std::unique_ptr<Function> main;
+	File& file;
+	Function main;
 	std::unique_ptr<Token> main_token;
 	const Type* type;
-	std::unordered_map<std::string, Function*> functions;
+	std::unordered_map<std::string, Function&> functions;
 	std::string file_name;
 	std::unordered_map<std::string, std::unique_ptr<Variable>> globals;
 	std::unordered_map<std::string, std::unique_ptr<Variable>> operators;
-	File* main_file;
 	std::unordered_set<File*> included_files;
 	std::vector<std::unique_ptr<Token>> operators_tokens;
 	std::vector<std::unique_ptr<Function>> operators_functions;
@@ -44,15 +43,15 @@ public:
 	llvm::Module* module = nullptr;
 	llvm::orc::VModuleKey module_handle;
 	std::vector<std::string> comments;
+	std::map<std::pair<std::string, std::vector<const Type*>>, llvm::Function*> std_functions;
 	#endif
 
-	Program(Environment& env, const std::string& code, const std::string& file_name);
-	Program(Environment& env, const std::string& code, File* file);
+	Program(Environment& env, File& file);
 	virtual ~Program();
 
 	void analyze(SyntaxicAnalyzer& syn, SemanticAnalyzer& sem, bool format, bool debug, bool sections);
 	Completion autocomplete(SemanticAnalyzer& analyzer, size_t position);
-	Hover hover(SemanticAnalyzer& analyzer, File* file, size_t position);
+	Hover hover(SemanticAnalyzer& analyzer, File& file, size_t position);
 
 	/*
 	 * Compile the program with a VM and a context (json)

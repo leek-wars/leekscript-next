@@ -112,7 +112,8 @@ int CLI::start_full(int argc, char* argv[]) {
 
 int CLI::analyze_snippet(std::string code, CLI_options options) {
 	ls::Environment env { options.legacy };
-	ls::Program program { env, code, "snippet" };
+	ls::File file { env, "snippet", code, {} };
+	ls::Program program { env, file };
 	env.analyze(program, options.format, options.debug);
 	std::ostringstream oss;
 	program.print(oss, true);
@@ -120,10 +121,11 @@ int CLI::analyze_snippet(std::string code, CLI_options options) {
 	return 0;
 }
 
-int CLI::analyze_file(std::string file, CLI_options options) {
-	auto code = ls::Util::read_file(file);
+int CLI::analyze_file(std::string path, CLI_options options) {
+	auto code = ls::Util::read_file(path);
 	ls::Environment env { options.legacy };
-	ls::Program program { env, code, "snippet" };
+	ls::File file { env, path, code, {} };
+	ls::Program program { env, file };
 	env.analyze(program, options.format, options.debug, options.sections);
 	std::ostringstream oss;
 	program.print(oss, true);
@@ -134,7 +136,8 @@ int CLI::analyze_file(std::string file, CLI_options options) {
 int CLI::execute_snippet(std::string code, CLI_options options) {
 	#if COMPILER
 	ls::Environment env { options.legacy };
-	ls::Program program { env, code, "snippet" };
+	ls::File file { env, "snippet", code, {} };
+	ls::Program program { env, file };
 
 	OutputStringStream oss;
 	if (options.json_output) {
@@ -153,15 +156,16 @@ int CLI::execute_snippet(std::string code, CLI_options options) {
 	return 0;
 }
 
-int CLI::execute_file(std::string file, CLI_options options) {
+int CLI::execute_file(std::string path, CLI_options options) {
 	#if COMPILER
-	auto code = ls::Util::read_file(file);
-	auto file_name = Util::file_short_name(file);
+	auto code = ls::Util::read_file(path);
+	auto file_name = Util::file_short_name(path);
 	ls::Environment env { options.legacy };
 	OutputStringStream oss;
 	if (options.json_output)
 		env.output = &oss;
-	Program program { env, code, file_name };
+	ls::File file { env, path, code, {} };
+	Program program { env, file };
 
 	if (not options.execute_ir) {
 		env.analyze(program, options.format, options.debug, options.sections);
@@ -188,7 +192,8 @@ int CLI::repl(CLI_options options) {
 		std::cout << ">> ";
 		std::getline(std::cin, code);
 		// Execute
-		Program program { env, code, "(top-level)" };
+		ls::File file { env, "(top-level)", code, {} };
+		Program program { env, file };
 		program.context = &ctx;
 		env.analyze(program, options.format, options.debug, options.sections);
 		env.compile(program, options.format, options.debug, options.operations, false, options.intermediate, options.optimization, options.execute_ir, options.execute_bitcode);
@@ -232,7 +237,7 @@ void CLI::print_errors(ls::Result& result, std::ostream& os, bool json) {
 	for (const auto& e : result.errors) {
 		if (!first) std::cout << std::endl;
 		os << C_RED << "❌ " << END_COLOR << e.message() << std::endl;
-		os << "    " << BOLD << "> " << e.location.file->path << ":" << e.location.start.line << END_COLOR << ": " << e.underline_code << std::endl;
+		os << "    " << BOLD << "> " << e.location.file.path << ":" << e.location.start.line << END_COLOR << ": " << e.underline_code << std::endl;
 		first = false;
 	}
 	#if COMPILER

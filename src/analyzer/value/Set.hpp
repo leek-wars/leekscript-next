@@ -8,9 +8,12 @@ namespace ls {
 
 class Set : public Value {
 public:
+
+	VirtualToken opening_chevron;
+	VirtualToken closing_chevron;
 	std::vector<std::unique_ptr<Value>> expressions;
 
-	Set(Environment& env);
+	Set(Environment& env, VirtualToken opening_chevron, VirtualToken closing_chevron);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

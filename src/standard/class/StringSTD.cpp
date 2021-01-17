@@ -7,6 +7,7 @@
 #include "ValueSTD.hpp"
 #include "../../type/Type.hpp"
 #include "../../analyzer/semantic/Variable.hpp"
+#include "../../analyzer/semantic/FunctionVersion.hpp"
 #include "../../environment/Environment.hpp"
 #if COMPILER
 #include "../../vm/value/LSNumber.hpp"
@@ -566,11 +567,11 @@ long string_number(const LSString* s) {
 
 Compiler::value StringSTD::fold_fun(Compiler& c, std::vector<Compiler::value> args, int) {
 	auto function = args[1];
-	auto result = Variable::new_temporary("r", args[2].t);
+	auto result = Variable::new_temporary("r", args[2].t, *c.fun->parent);
 	result.create_entry(c);
 	// c.add_temporary_variable(&result);
 	c.insn_store(result.entry, c.insn_move_inc(args[2]));
-	auto v = Variable::new_temporary("v", args[0].t->element());
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
 	// v->create_entry(c);
 	// c.add_temporary_variable(v);
 	c.insn_foreach(args[0], c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {

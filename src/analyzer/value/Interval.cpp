@@ -5,7 +5,9 @@
 
 namespace ls {
 
-Interval::Interval(Environment& env) : Value(env) {
+Interval::Interval(Environment& env, VirtualToken opening_bracket, VirtualToken closing_bracket) :
+	Value(env), opening_bracket(opening_bracket), closing_bracket(closing_bracket)
+{
 	type = env.interval;
 }
 
@@ -50,9 +52,7 @@ Compiler::value Interval::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> Interval::clone(Block* parent) const {
-	auto interval = std::make_unique<Interval>(type->env);
-	interval->opening_bracket = opening_bracket;
-	interval->closing_bracket = closing_bracket;
+	auto interval = std::make_unique<Interval>(type->env, opening_bracket, closing_bracket);
 	interval->start = start->clone(parent);
 	interval->end = end->clone(parent);
 	return interval;

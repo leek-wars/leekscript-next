@@ -8,7 +8,8 @@
 
 namespace ls {
 
-ArrayAccess::ArrayAccess(Environment& env) : LeftValue(env)
+ArrayAccess::ArrayAccess(Environment& env, VirtualToken open_bracket, VirtualToken close_bracket) :
+	LeftValue(env), open_bracket(open_bracket), close_bracket(close_bracket)
 #if COMPILER
 , compiled_array(env)
 #endif
@@ -390,12 +391,10 @@ void ArrayAccess::compile_end(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> ArrayAccess::clone(Block* parent) const {
-	auto aa = std::make_unique<ArrayAccess>(type->env);
+	auto aa = std::make_unique<ArrayAccess>(type->env, open_bracket, close_bracket);
 	aa->array = array->clone(parent);
 	aa->key = key->clone(parent);
 	aa->key2 = key2 ? key2->clone(parent) : nullptr;
-	aa->open_bracket = open_bracket;
-	aa->close_bracket = close_bracket;
 	return aa;
 }
 

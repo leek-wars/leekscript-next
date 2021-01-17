@@ -4,7 +4,7 @@
 
 namespace ls {
 
-Break::Break(Environment& env) : Instruction(env) {
+Break::Break(Environment& env, VirtualToken token) : Instruction(env), token(token) {
 	deepness = 1;
 	jumping = true;
 	jump_to_existing_section = true;
@@ -50,8 +50,7 @@ Compiler::value Break::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Instruction> Break::clone(Block* parent) const {
-	auto b = std::make_unique<Break>(type->env);
-	b->token = token;
+	auto b = std::make_unique<Break>(type->env, token);
 	b->deepness = deepness;
 	return b;
 }

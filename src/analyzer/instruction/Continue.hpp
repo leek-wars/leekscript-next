@@ -11,7 +11,7 @@ public:
 	int deepness;
 	VirtualToken token;
 
-	Continue(Environment& env);
+	Continue(Environment& env, VirtualToken token);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

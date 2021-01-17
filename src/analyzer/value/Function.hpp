@@ -20,7 +20,7 @@ public:
 	std::string name;
 	std::string internal_name;
 	bool lambda = false;
-	File* file = nullptr;
+	File& file;
 	VirtualToken token;
 	std::vector<VirtualToken> arguments;
 	std::vector<std::unique_ptr<Value>> defaultValues;
@@ -43,7 +43,8 @@ public:
 	bool captures_compiled = false;
 	std::unique_ptr<Callable> callable;
 
-	Function(Environment& env, VirtualToken token, File* file);
+	Function(Environment& env, File& file);
+	Function(Environment& env, VirtualToken token, File& file);
 
 	void addArgument(VirtualToken token, Value* defaultValue, bool reference);
 
@@ -51,7 +52,7 @@ public:
 	virtual Location location() const override;
 
 	virtual void pre_analyze(SemanticAnalyzer*) override;
-	void create_default_version(SemanticAnalyzer* analyzer);
+	void create_default_version(SemanticAnalyzer* analyzer, bool force = false);
 	void analyse_default_method(SemanticAnalyzer* analyzer);
 	const Type* will_take(SemanticAnalyzer*, const std::vector<const Type*>&, int level) override;
 	void set_version(SemanticAnalyzer* analyser, const std::vector<const Type*>& args, int level) override;
@@ -62,7 +63,7 @@ public:
 	virtual void analyze(SemanticAnalyzer*) override;
 	virtual Completion autocomplete(SemanticAnalyzer& analyzer, size_t position) const override;
 	virtual Hover hover(SemanticAnalyzer& analyzer, size_t position) const override;
-	Hover hover(SemanticAnalyzer& analyzer, File* file, size_t position) const;
+	Hover hover(SemanticAnalyzer& analyzer, File& file, size_t position) const;
 
 	#if COMPILER
 	virtual Compiler::value compile(Compiler&) const override;

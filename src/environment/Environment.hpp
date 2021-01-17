@@ -150,7 +150,7 @@ public:
 	/**
 	 * Hover a `Program` at a position in a certain file
 	 */
-	Hover hover(Program& program, File* file, size_t position);
+	Hover hover(Program& program, File& file, size_t position);
 
 	#if COMPILER
 	/**

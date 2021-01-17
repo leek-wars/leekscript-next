@@ -88,8 +88,8 @@ void Variable::delete_value(Compiler& c) {
 }
 #endif
 
-Variable Variable::new_temporary(std::string name, const Type* type) {
-	return { name, {}, VarScope::LOCAL, type, 0, nullptr, nullptr, nullptr, nullptr, nullptr };
+Variable Variable::new_temporary(std::string name, const Type* type, Function& function) {
+	return { name, { function }, VarScope::LOCAL, type, 0, nullptr, nullptr, nullptr, nullptr, nullptr };
 }
 
 const Type* Variable::get_type_for_variable_from_expression(Environment& env, const Value* expression) {

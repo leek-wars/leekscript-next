@@ -45,7 +45,7 @@ Hover Return::hover(SemanticAnalyzer& analyzer, size_t position) const {
 	if (expression && expression->location().contains(position)) {
 		return expression->hover(analyzer, position);
 	}
-	return { analyzer.env };
+	return { analyzer.env, token->location.file };
 }
 
 #if COMPILER

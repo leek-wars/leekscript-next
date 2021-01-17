@@ -18,7 +18,8 @@ void ArrayFor::print(std::ostream& os, int indent, PrintOptions options) const {
 }
 
 Location ArrayFor::location() const {
-	return {nullptr, {0, 0, 0}, {0, 0, 0}}; // TODO
+	// return {nullptr, {0, 0, 0}, {0, 0, 0}}; // TODO
+	assert(false);
 }
 
 Hover ArrayFor::hover(SemanticAnalyzer& analyzer, size_t position) const {

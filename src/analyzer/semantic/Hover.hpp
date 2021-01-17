@@ -18,7 +18,7 @@ public:
 	size_t defined_line = -1;
 	bool op = false;
 
-	Hover(Environment& env);
+	Hover(Environment& env, File& file);
 	Hover(const Type*, Location location, std::string alias = "");
 };
 

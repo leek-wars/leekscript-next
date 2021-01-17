@@ -8,8 +8,8 @@ namespace ls {
 
 class FileResolver {
 public:
-    File* create(std::string path, Program* program) const;
-	File* resolve(std::string path, FileContext context) const;
+    File* create(Environment& env, std::string path, std::string code) const;
+	File* resolve(Environment& env, std::string path, FileContext context) const;
 };
 
 }

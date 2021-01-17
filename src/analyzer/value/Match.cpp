@@ -32,7 +32,8 @@ void Match::print(std::ostream& os, int indent, PrintOptions options) const {
 }
 
 Location Match::location() const {
-	return {nullptr, {0, 0, 0}, {0, 0, 0}}; // TODO
+	// return {nullptr, {0, 0, 0}, {0, 0, 0}}; // TODO
+	assert(false);
 }
 
 void Match::pre_analyze(ls::SemanticAnalyzer* analyzer) {

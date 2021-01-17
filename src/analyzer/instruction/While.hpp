@@ -18,7 +18,7 @@ public:
 	std::unique_ptr<Block> body;
 	std::vector<Mutation> mutations;
 
-	While(Environment& env);
+	While(Environment& env, VirtualToken token);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

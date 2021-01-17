@@ -4,7 +4,9 @@
 
 namespace ls {
 
-Object::Object(Environment& env) : Value(env) {
+Object::Object(Environment& env, VirtualToken opening_brace, VirtualToken closing_brace) :
+	Value(env), opening_brace(opening_brace), closing_brace(closing_brace)
+{
 	type = env.tmp_object;
 }
 
@@ -62,9 +64,7 @@ Compiler::value Object::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> Object::clone(Block* parent) const {
-	auto o = std::make_unique<Object>(type->env);
-	o->opening_brace = opening_brace;
-	o->closing_brace = closing_brace;
+	auto o = std::make_unique<Object>(type->env, opening_brace, closing_brace);
 	for (const auto& k : keys) {
 		o->keys.push_back(k);
 	}

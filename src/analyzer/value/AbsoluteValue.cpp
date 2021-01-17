@@ -4,7 +4,9 @@
 
 namespace ls {
 
-AbsoluteValue::AbsoluteValue(Environment& env) : Value(env) {
+AbsoluteValue::AbsoluteValue(Environment& env, VirtualToken open_pipe, VirtualToken close_pipe) :
+	Value(env), open_pipe(open_pipe), close_pipe(close_pipe)
+{
 	type = env.integer;
 	throws = true;
 }
@@ -49,10 +51,8 @@ Compiler::value AbsoluteValue::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> AbsoluteValue::clone(Block* parent) const {
-	auto abs = std::make_unique<AbsoluteValue>(type->env);
+	auto abs = std::make_unique<AbsoluteValue>(type->env, open_pipe, close_pipe);
 	abs->expression = expression->clone(parent);
-	abs->open_pipe = open_pipe;
-	abs->close_pipe = close_pipe;
 	return abs;
 }
 

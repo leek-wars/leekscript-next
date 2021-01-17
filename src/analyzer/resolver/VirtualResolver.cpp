@@ -9,10 +9,9 @@ namespace ls {
 
 static std::unordered_map<std::string, std::unique_ptr<File>> file_cache;
 
-File* VirtualResolver::create(std::string path, Program* program) const {
+File* VirtualResolver::create(Environment& env, std::string path, std::string code) const {
 	auto fspath = std::filesystem::path(path);
-	auto code = program ? program->code : "";
-	return file_cache.emplace(path, new File(path, code, FileContext(fspath.parent_path()), program)).first->second.get();
+	return file_cache.emplace(path, new File(env, path, code, FileContext(fspath.parent_path()))).first->second.get();
 }
 
 File* VirtualResolver::delete_(std::string path) const {
@@ -22,7 +21,7 @@ File* VirtualResolver::delete_(std::string path) const {
 	return file;
 }
 
-File* VirtualResolver::resolve(std::string path, FileContext context) const {
+File* VirtualResolver::resolve(Environment& env, std::string path, FileContext context) const {
 	auto resolvedPath = (context.folder / path).lexically_normal();
 	auto i = file_cache.find(resolvedPath);
 	if (i != file_cache.end()) {

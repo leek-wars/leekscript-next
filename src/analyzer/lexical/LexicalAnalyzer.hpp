@@ -20,7 +20,6 @@ public:
 	static std::unordered_set<std::string> ignored_case_legacy;
 	static std::unordered_set<std::string> legacy_disabled_keywords;
 
-	File* file;
 	std::unordered_map<std::string, TokenType> token_map;
 	bool legacy;
 
@@ -29,9 +28,9 @@ public:
 	LetterType getLetterType(unsigned char c, unsigned char nc);
 	bool isToken(const std::string& word);
 	TokenType getTokenType(const std::string& word, TokenType by_default);
-	std::vector<Token> parseTokens(const std::string& code);
+	std::vector<Token> parseTokens(File& file, const std::string& code);
 
-	std::vector<Token> analyze(File* file);
+	std::vector<Token> analyze(File& file);
 };
 
 }

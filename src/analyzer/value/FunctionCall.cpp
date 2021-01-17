@@ -21,7 +21,9 @@
 
 namespace ls {
 
-FunctionCall::FunctionCall(Environment& env, VirtualToken t) : Value(env), token(t), callable_version(env) {
+FunctionCall::FunctionCall(Environment& env, VirtualToken opening_parenthesis, VirtualToken closing_parenthesis) :
+	Value(env), opening_parenthesis(opening_parenthesis), closing_parenthesis(closing_parenthesis), callable_version(env)
+{
 	std_func = nullptr;
 	this_ptr = nullptr;
 	constant = false;
@@ -50,7 +52,7 @@ void FunctionCall::print(std::ostream& os, int indent, PrintOptions options) con
 }
 
 Location FunctionCall::location() const {
-	return {closing_parenthesis->location.file, function->location().start, closing_parenthesis->location.end};
+	return {closing_parenthesis.function.file, function->location().start, closing_parenthesis->location.end};
 }
 
 void FunctionCall::pre_analyze(SemanticAnalyzer* analyzer) {
@@ -303,7 +305,7 @@ Completion FunctionCall::autocomplete(SemanticAnalyzer& analyzer, size_t positio
 	if (position >= opening_parenthesis->location.end.raw and position <= closing_parenthesis->location.start.raw) {
 		Completion completion { analyzer.env.void_ };
 		Position pos = opening_parenthesis->location.end;
-		Location location { nullptr, pos, pos };
+		Location location { opening_parenthesis->location.file, pos, pos };
 		for (const auto& variable : analyzer.current_block()->variables) {
 			completion.items.push_back({ variable.first, CompletionType::VARIABLE, variable.second->type, location });
 		}
@@ -408,13 +410,11 @@ Compiler::value FunctionCall::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> FunctionCall::clone(Block* parent) const {
-	auto fc = std::make_unique<FunctionCall>(type->env, token);
+	auto fc = std::make_unique<FunctionCall>(type->env, opening_parenthesis, closing_parenthesis);
 	fc->function = function->clone(parent);
 	for (const auto& a : arguments) {
 		fc->arguments.emplace_back(a->clone(parent));
 	}
-	fc->opening_parenthesis = opening_parenthesis;
-	fc->closing_parenthesis = closing_parenthesis;
 	return fc;
 }
 

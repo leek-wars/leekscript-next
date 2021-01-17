@@ -10,7 +10,7 @@
 
 namespace ls {
 
-ObjectAccess::ObjectAccess(Environment& env, VirtualToken token) : LeftValue(env), field(token) {
+ObjectAccess::ObjectAccess(Environment& env, VirtualToken dot, VirtualToken token) : LeftValue(env), dot(dot), field(token) {
 	attr_addr = nullptr;
 	throws = true; // TODO doesn't always throw
 	callable = std::make_unique<Callable>();
@@ -377,7 +377,7 @@ Compiler::value ObjectAccess::compile_l(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> ObjectAccess::clone(Block* parent) const {
-	auto oa = std::make_unique<ObjectAccess>(type->env, field);
+	auto oa = std::make_unique<ObjectAccess>(type->env, dot, field);
 	oa->object = object->clone(parent);
 	return oa;
 }

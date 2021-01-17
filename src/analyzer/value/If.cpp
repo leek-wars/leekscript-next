@@ -9,7 +9,7 @@
 
 namespace ls {
 
-If::If(Environment& env, bool ternary) : Value(env) {
+If::If(Environment& env, VirtualToken token, bool ternary) : Value(env), token(token) {
 	this->ternary = ternary;
 	jumping = true;
 }
@@ -99,10 +99,8 @@ Hover If::hover(SemanticAnalyzer& analyzer, size_t position) const {
 	if (then->location().contains(position)) {
 		return then->hover(analyzer, position);
 	}
-	if (elze and elze->instructions.size() and elze->location().contains(position)) {
-		return elze->hover(analyzer, position);
-	}
-	return { analyzer.env };
+	assert(elze);
+	return elze->hover(analyzer, position);
 }
 
 #if COMPILER
@@ -150,8 +148,7 @@ Compiler::value If::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> If::clone(Block* parent) const {
-	auto iff = std::make_unique<If>(type->env);
-	iff->token = token;
+	auto iff = std::make_unique<If>(type->env, token);
 	iff->ternary = ternary;
 	iff->condition = condition->clone(parent);
 	iff->then = unique_static_cast<Block>(then->clone(parent));

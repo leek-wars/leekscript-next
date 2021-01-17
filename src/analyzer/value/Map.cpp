@@ -5,7 +5,9 @@
 
 namespace ls {
 
-Map::Map(Environment& env) : Value(env) {}
+Map::Map(Environment& env, VirtualToken opening_bracket, VirtualToken closing_bracket) :
+	Value(env), opening_bracket(opening_bracket), closing_bracket(closing_bracket)
+{}
 
 void Map::print(std::ostream& os, int indent, PrintOptions options) const {
 	if (values.empty()) {
@@ -118,9 +120,7 @@ Compiler::value Map::compile(Compiler &c) const {
 #endif
 
 std::unique_ptr<Value> Map::clone(Block* parent) const {
-	auto map = std::make_unique<Map>(type->env);
-	map->opening_bracket = opening_bracket;
-	map->closing_bracket = closing_bracket;
+	auto map = std::make_unique<Map>(type->env, opening_bracket, closing_bracket);
 	for (const auto& k : keys) {
 		map->keys.push_back(k->clone(parent));
 	}

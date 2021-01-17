@@ -7,7 +7,7 @@
 
 namespace ls {
 
-VariableDeclaration::VariableDeclaration(Environment& env) : Instruction(env) {
+VariableDeclaration::VariableDeclaration(Environment& env, VirtualToken keyword) : Instruction(env), keyword(keyword) {
 	global = false;
 	constant = false;
 }
@@ -42,7 +42,7 @@ Location VariableDeclaration::location() const {
 			return variables.back()->location.end;
 		}
 	}();
-	return { keyword->location.file, keyword->location.start, end };
+	return { keyword.function.file, keyword->location.start, end };
 }
 
 void VariableDeclaration::set_end_section(Section* end_section) {
@@ -143,7 +143,7 @@ Hover VariableDeclaration::hover(SemanticAnalyzer& analyzer, size_t position) co
 			return expression->hover(analyzer, position);
 		}
 	}
-	return { analyzer.env };
+	return { analyzer.env, keyword->location.file };
 }
 
 #if COMPILER
@@ -175,8 +175,7 @@ Compiler::value VariableDeclaration::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Instruction> VariableDeclaration::clone(Block* parent) const {
-	auto vd = std::make_unique<VariableDeclaration>(type->env);
-	vd->keyword = keyword;
+	auto vd = std::make_unique<VariableDeclaration>(type->env, keyword);
 	vd->global = global;
 	vd->constant = constant;
 	vd->function = function;

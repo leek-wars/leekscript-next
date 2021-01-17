@@ -7,8 +7,8 @@
 
 namespace ls {
 
-Foreach::Foreach(Environment& env) : Instruction(env) {
-	wrapper_block = std::make_unique<Block>(env);
+Foreach::Foreach(Environment& env, VirtualToken token, VirtualToken key, VirtualToken value) : Instruction(env), token(token), key(key), value(value) {
+	wrapper_block = std::make_unique<Block>(env, VirtualToken { token.function }, VirtualToken { token.function });
 	key_var = nullptr;
 	value_var = nullptr;
 	jumping = true;
@@ -321,10 +321,7 @@ Compiler::value Foreach::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Instruction> Foreach::clone(Block* parent) const {
-	auto f = std::make_unique<Foreach>(type->env);
-	f->token = token;
-	f->key = key;
-	f->value = value;
+	auto f = std::make_unique<Foreach>(type->env, token, key, value);
 	f->container = container->clone(f->wrapper_block.get());
 
 	auto wrapper_section = f->wrapper_block->sections[0].get();

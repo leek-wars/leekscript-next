@@ -33,18 +33,9 @@
 
 namespace ls {
 
-Program::Program(Environment& env, const std::string& code, const std::string& file_name)
-	: env(env), code(code), file_name(file_name) {
-
-	// std::cout << "new Program " << file_name << std::endl;
-	main_file = Resolver().create(file_name, this);
-}
-
-Program::Program(Environment& env, const std::string& code, File* file)
-	: env(env), code(code), file_name(file->path) {
-
-	main_file = file;
-}
+Program::Program(Environment& env, File& file)
+	: env(env), file(file), main(env, file), file_name(file.path)
+{}
 
 Program::~Program() {
 	#if COMPILER
@@ -60,21 +51,22 @@ void Program::analyze(SyntaxicAnalyzer& syn, SemanticAnalyzer& sem, bool format,
 
 	// Remove previous errors
 	result.errors.clear();
-	main_file->errors.clear();
+	file.errors.clear();
 
 	// Create main function
-	main_token = std::make_unique<Token>(TokenType::FUNCTION, main_file, 0, 0, 0, "function");
-	if (!main) {
-		main = std::make_unique<Function>(env, VirtualToken {}, main_file);
+	main_token = std::make_unique<Token>(TokenType::FUNCTION, file, 0, 0, 0, "function");
+
+	std::unique_ptr<Block> block { syn.analyze() };
+
+	for (const auto& error : file.errors) {
+		result.errors.insert(std::move(error));
 	}
 
-	std::unique_ptr<Block> block { syn.analyze(main_file, this) };
-
-	result.errors = main_file->errors;
-
-	main->body = std::move(block);
-	main->is_main_function = true;
-	main->name = "main";
+	main.body = std::move(block);
+	main.create_default_version(&sem, true);
+	// std::cout << "main.body instructions " << main.body->instructions.size() << std::endl;
+	main.is_main_function = true;
+	main.name = "main";
 
 	sem.analyze(this);
 
@@ -83,7 +75,7 @@ void Program::analyze(SyntaxicAnalyzer& syn, SemanticAnalyzer& sem, bool format,
 	result.parse_time = (((double) parse_time / 1000) / 1000);
 	result.analyzed = true;
 
-	type = main->type->return_type();
+	type = main.type->return_type();
 
 	if (format or debug) {
 		std::cout << "main() ";
@@ -92,7 +84,10 @@ void Program::analyze(SyntaxicAnalyzer& syn, SemanticAnalyzer& sem, bool format,
 	}
 	if (sem.errors.size()) {
 		result.compilation_success = false;
-		result.errors.insert(result.errors.end(), sem.errors.begin(), sem.errors.end());
+		for (auto& error : sem.errors) {
+			result.errors.insert(std::move(error));
+		}
+		// result.errors.insert(result.errors.end(), std::make_move_iterator(sem.errors.begin()), std::make_move_iterator(sem.errors.end()));
 		return;
 	}
 }
@@ -103,15 +98,15 @@ Completion Program::autocomplete(SemanticAnalyzer& analyzer, size_t position) {
 		return { analyzer.env };
 	}
 	analyzer.program = this;
-	return main->autocomplete(analyzer, position);
+	return main.autocomplete(analyzer, position);
 }
 
-Hover Program::hover(SemanticAnalyzer& analyzer, File* file, size_t position) {
+Hover Program::hover(SemanticAnalyzer& analyzer, File& file, size_t position) {
 	if (not result.analyzed) {
 		// std::cout << "Program not analyzed yet!" << std::endl;
-		return { analyzer.env.void_, { nullptr, {0,0,0}, {0,0,0} } };
+		return { analyzer.env.void_, { file, {0,0,0}, {0,0,0} } };
 	}
-	return main->hover(analyzer, file, position);
+	return main.hover(analyzer, file, position);
 }
 
 #if COMPILER
@@ -154,7 +149,7 @@ void Program::compile_leekscript(Compiler& c, bool format, bool debug, bool bitc
 	module = new llvm::Module(file_name, c.getContext());
 	module->setDataLayout(c.DL);
 
-	main->compile(c);
+	main.compile(c);
 
 	if (pseudo_code) {
 		std::error_code EC2;
@@ -173,7 +168,7 @@ void Program::compile_leekscript(Compiler& c, bool format, bool debug, bool bitc
 	assert(ExprSymbol && "Function not found");
 	closure = (void*) cantFail(ExprSymbol.getAddress());
 	// std::cout << "program type " << main->type->return_type() << std::endl;
-	type = main->type->return_type()->fold();
+	type = main.type->return_type()->fold();
 	// std::cout << "program type " << type << std::endl;
 
 	auto compilation_end = std::chrono::high_resolution_clock::now();
@@ -263,27 +258,28 @@ Variable* Program::get_operator(const std::string& name) {
 	auto o = std::find(ops.begin(), ops.end(), name);
 	if (o == ops.end()) return nullptr;
 
-	auto token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::FUNCTION, main_file, 0, 0, 0, "function")).get();
-	auto f = operators_functions.emplace_back(std::make_unique<Function>(env, VirtualToken { main.get(), 0 }, main_file)).get();
-	auto v1_token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::IDENT, main_file, 0, 1, 0, "x")).get();
-	auto v2_token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::IDENT, main_file, 2, 1, 2, "y")).get();
-	f->addArgument(VirtualToken { main.get(), 0 }, nullptr, false);
-	f->addArgument(VirtualToken { main.get(), 2 }, nullptr, false);
-	f->body.reset(new Block(env, true));
+	auto token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::FUNCTION, file, 0, 0, 0, "function")).get();
+	auto f = operators_functions.emplace_back(std::make_unique<Function>(env, VirtualToken { main, 0 }, file)).get();
+	auto v1_token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::IDENT, file, 0, 1, 0, "x")).get();
+	auto v2_token = operators_tokens.emplace_back(std::make_unique<Token>(TokenType::IDENT, file, 2, 1, 2, "y")).get();
+	f->addArgument(VirtualToken { main, 0 }, nullptr, false);
+	f->addArgument(VirtualToken { main, 2 }, nullptr, false);
+	f->body.reset(new Block(env, { main }, { main }, true));
 	auto ex = std::make_unique<Expression>(env);
-	auto op_token = operators_tokens.emplace_back(std::make_unique<Token>(token_types.at(std::distance(ops.begin(), o)), main_file, 1, 1, 1, name)).get();
-	ex->v1 = std::make_unique<VariableValue>(env, VirtualToken { main.get(), 0 });
-	ex->v2 = std::make_unique<VariableValue>(env, VirtualToken { main.get(), 2 });
-	ex->op = std::make_shared<Operator>(VirtualToken { main.get(), 1 });
+	auto op_token = operators_tokens.emplace_back(std::make_unique<Token>(token_types.at(std::distance(ops.begin(), o)), file, 1, 1, 1, name)).get();
+	ex->v1 = std::make_unique<VariableValue>(env, VirtualToken { main, 0 });
+	ex->v2 = std::make_unique<VariableValue>(env, VirtualToken { main, 2 });
+	ex->op = std::make_shared<Operator>(VirtualToken { main, 1 });
 	f->body->add_instruction(std::make_unique<ExpressionInstruction>(env, std::move(ex)));
 	auto type = Type::fun(env.any, { env.any, env.any });
 
-	auto var = new Variable(name, VirtualToken { main.get(), 0 }, VarScope::INTERNAL, type, 0, f, nullptr, nullptr, nullptr, nullptr);
+	auto var = new Variable(name, VirtualToken { main, 0 }, VarScope::INTERNAL, type, 0, f, nullptr, nullptr, nullptr, nullptr);
 	operators.emplace(name, var);
 	return var;
 }
 
 #if COMPILER
+
 std::string Program::execute(VM& vm) {
 
 	assert(!type->reference && "Program return type shouldn't be a reference!");
@@ -337,11 +333,11 @@ std::string Program::execute(VM& vm) {
 #endif
 
 void Program::print(std::ostream& os, bool debug, bool sections) const {
-	if (main) {
-		main->default_version->body->print(os, 0, { debug, false, sections });
-	} else {
-		os << "(ll file)";
-	}
+	// if (main) {
+		main.default_version->body->print(os, 0, { debug, false, sections });
+	// } else {
+	// 	os << "(ll file)";
+	// }
 }
 
 std::ostream& operator << (std::ostream& os, const Program* program) {
@@ -353,13 +349,13 @@ std::string Program::underline_code(Location location, Location focus) const {
 	// std::cout << "underline " << location.start.column << " " << location.end.column << " " << focus.start.column << " " << focus.end.column << std::endl;
 	auto padding = 10ul;
 	auto start = padding > location.start.raw ? 0ul : location.start.raw - padding;
-	auto end = std::min(code.size(), location.end.raw + padding);
+	auto end = std::min(file.code.size(), location.end.raw + padding);
 	auto padding_left = std::min(padding, location.start.raw - start);
 	auto padding_right = std::min(padding, end - location.end.raw);
 	auto ellipsis_left = start > 0;
-	auto ellipsis_right = end < code.size();
+	auto ellipsis_right = end < file.code.size();
 
-	auto extract = code.substr(start, end - start);
+	auto extract = file.code.substr(start, end - start);
 	auto underlined = extract.substr(padding_left, end - start - padding_left - padding_right);
 	auto before = extract.substr(0, padding_left);
 	auto after = extract.substr(extract.size() - padding_right, padding_right);

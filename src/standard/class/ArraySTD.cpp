@@ -4,6 +4,8 @@
 #include "../TypeMutator.hpp"
 #include "../../type/Type.hpp"
 #include "../../analyzer/semantic/Variable.hpp"
+#include "../../analyzer/value/Function.hpp"
+#include "../../analyzer/semantic/FunctionVersion.hpp"
 #include "../../environment/Environment.hpp"
 #if COMPILER
 #include "../../vm/value/LSNumber.hpp"
@@ -605,11 +607,11 @@ Compiler::value ArraySTD::fold_left(Compiler& c, std::vector<Compiler::value> ar
 	auto array = args[0];
 	auto function = args[1];
 	auto init_type = function.t->argument(0);
-	auto result = Variable::new_temporary("r", init_type);
+	auto result = Variable::new_temporary("r", init_type, *c.fun->parent);
 	result.create_entry(c);
 	// c.add_temporary_variable(&result);
 	c.insn_store(result.entry, c.insn_convert(c.insn_move_inc(args[2]), init_type));
-	auto v = Variable::new_temporary("v", args[0].t->element());
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
 	c.insn_foreach(array, c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {
 		auto r = c.insn_call(function, { c.insn_load(result.entry), v });
 		c.insn_delete(c.insn_load(result.entry));
@@ -623,11 +625,11 @@ Compiler::value ArraySTD::fold_left(Compiler& c, std::vector<Compiler::value> ar
 
 Compiler::value ArraySTD::fold_right(Compiler& c, std::vector<Compiler::value> args, int) {
 	auto function = args[1];
-	auto result = Variable::new_temporary("r", args[2].t);
+	auto result = Variable::new_temporary("r", args[2].t, *c.fun->parent);
 	result.create_entry(c);
 	// c.add_temporary_variable(&result);
 	c.insn_store(result.entry, c.insn_move(args[2]));
-	auto v = Variable::new_temporary("v", args[0].t->element());
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
 	c.insn_foreach(args[0], c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {
 		c.insn_store(result.entry, c.insn_call(function, {v, c.insn_load(result.entry)}));
 		return { c.env };
@@ -637,7 +639,7 @@ Compiler::value ArraySTD::fold_right(Compiler& c, std::vector<Compiler::value> a
 
 Compiler::value ArraySTD::iter(Compiler& c, std::vector<Compiler::value> args, int) {
 	auto function = args[1];
-	auto v = Variable::new_temporary("v", args[0].t->element());
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
 	v.create_entry(c);
 	// c.add_temporary_variable(&v);
 	c.insn_foreach(args[0], c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {
@@ -673,7 +675,7 @@ Compiler::value ArraySTD::partition(Compiler& c, std::vector<Compiler::value> ar
 	auto function = args[1];
 	auto array_true = c.new_array(array.t->element(), {});
 	auto array_false = c.new_array(array.t->element(), {});
-	auto v = Variable::new_temporary("v", array.t->element());
+	auto v = Variable::new_temporary("v", array.t->element(), *c.fun->parent);
 	v.create_entry(c);
 	c.insn_foreach(array, c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {
 		auto r = c.insn_call(function, {v});
@@ -712,11 +714,11 @@ Compiler::value ArraySTD::map(Compiler& c, std::vector<Compiler::value> args, in
 Compiler::value ArraySTD::min_fun(Compiler& c, std::vector<Compiler::value> args, int flags) {
 	auto array = args[0];
 	auto function = args[1];
-	auto v = Variable::new_temporary("v", array.t->element());
+	auto v = Variable::new_temporary("v", array.t->element(), *c.fun->parent);
 	v.create_entry(c);
-	auto min_v = Variable::new_temporary("min_v", array.t->element());
+	auto min_v = Variable::new_temporary("min_v", array.t->element(), *c.fun->parent);
 	min_v.create_entry(c);
-	auto min = Variable::new_temporary("min", c.env.integer);
+	auto min = Variable::new_temporary("min", c.env.integer, *c.fun->parent);
 	min.create_entry(c);
 	min.store_value(c, c.new_integer(std::numeric_limits<int>::max()));
 	c.insn_foreach(array, c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {
@@ -807,9 +809,9 @@ Compiler::value ArraySTD::layer(Compiler& c, std::vector<Compiler::value> args, 
 	auto filter = args[2];
 	c.insn_inc_refs(filter);
 	auto result = c.new_array(args[0].t->element()->operator + (args[1].t->element()), {});
-	auto v = Variable::new_temporary("v", args[0].t->element());
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
 	v.create_entry(c);
-	auto i = Variable::new_temporary("i", args[0].t->key());
+	auto i = Variable::new_temporary("i", args[0].t->key(), *c.fun->parent);
 	i.create_entry(c);
 	c.insn_foreach(args[0], c.env.void_, &v, &i, [&](Compiler::value v, Compiler::value i) -> Compiler::value {
 		auto x = c.clone(v);

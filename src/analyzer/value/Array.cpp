@@ -5,8 +5,10 @@
 
 namespace ls {
 
-Array::Array(Environment& env) : Value(env) {
 	type = Type::tmp_array(env.never);
+Array::Array(Environment& env, VirtualToken opening_bracket, VirtualToken closing_bracket) :
+	Value(env), opening_bracket(opening_bracket), closing_bracket(closing_bracket)
+{
 }
 
 void Array::print(std::ostream& os, int indent, PrintOptions options) const {
@@ -181,9 +183,7 @@ Compiler::value Array::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Value> Array::clone(Block* parent) const {
-	auto array = std::make_unique<Array>(type->env);
-	array->opening_bracket = opening_bracket;
-	array->closing_bracket = closing_bracket;
+	auto array = std::make_unique<Array>(type->env, opening_bracket, closing_bracket);
 	for (const auto& ex : expressions) {
 		array->expressions.push_back(ex->clone(parent));
 	}

@@ -7,7 +7,7 @@
 
 namespace ls {
 
-While::While(Environment& env) : Instruction(env) {
+While::While(Environment& env, VirtualToken token) : Instruction(env), token(token) {
 	body = nullptr;
 	jumping = true;
 }
@@ -138,8 +138,7 @@ Compiler::value While::compile(Compiler& c) const {
 #endif
 
 std::unique_ptr<Instruction> While::clone(Block* parent) const {
-	auto w = std::make_unique<While>(type->env);
-	w->token = token;
+	auto w = std::make_unique<While>(type->env, token);
 
 	w->end_section = new Section(type->env, "end");
 

@@ -14,7 +14,7 @@ public:
 	VirtualToken open_pipe;
 	VirtualToken close_pipe;
 
-	AbsoluteValue(Environment& env);
+	AbsoluteValue(Environment& env, VirtualToken open_pipe, VirtualToken close_pipe);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

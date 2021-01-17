@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <set>
 #include "error/Error.hpp"
 
 namespace ls {
@@ -13,7 +14,7 @@ struct Result {
 	bool analyzed = false;
 	bool compilation_success = false;
 	bool execution_success = false;
-	std::vector<Error> errors;
+	std::set<Error> errors;
 	std::string program = "";
 	std::string value = "";
 	double parse_time = 0;

@@ -24,7 +24,7 @@ public:
 	Compiler::value compiled_array;
 	#endif
 
-	ArrayAccess(Environment& env);
+	ArrayAccess(Environment& env, VirtualToken open_bracket, VirtualToken close_bracket);
 
 	virtual bool isLeftValue() const override;
 

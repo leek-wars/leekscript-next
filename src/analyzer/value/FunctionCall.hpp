@@ -15,7 +15,6 @@ class CallableVersion;
 
 class FunctionCall : public Value {
 public:
-	VirtualToken token;
 	std::unique_ptr<Value> function;
 	std::vector<std::unique_ptr<Value>> arguments;
 	VirtualToken opening_parenthesis;
@@ -37,7 +36,7 @@ public:
 	bool include = false; // Is a include instruction?
 	File* included_file = nullptr; // Included file in case of include
 
-	FunctionCall(Environment& env, VirtualToken t);
+	FunctionCall(Environment& env, VirtualToken opening_parenthesis, VirtualToken closing_parenthesis);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

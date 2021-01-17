@@ -63,13 +63,14 @@ public:
 	std::vector<std::string> parameters;
 	std::string underline_code;
 
-	Error(Type type, ErrorLevel level, File* file, size_t line, size_t character);
+	Error(Type type, ErrorLevel level, File& file, size_t line, size_t character);
 	Error(Type type, ErrorLevel level, Token* token, std::vector<std::string> parameters);
 	Error(Type type, ErrorLevel level, Location location, Location focus);
 	Error(Type type, ErrorLevel level, Location location, Location focus, std::vector<std::string> parameters);
 	virtual ~Error();
 
 	bool operator == (const Error&) const;
+	bool operator < (const Error&) const;
 
 	std::string message() const;
 	Json json() const;

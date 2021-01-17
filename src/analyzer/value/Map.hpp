@@ -15,7 +15,7 @@ public:
 	std::vector<std::unique_ptr<Value>> keys;
 	std::vector<std::unique_ptr<Value>> values;
 
-	Map(Environment& env);
+	Map(Environment& env, VirtualToken opening_bracket, VirtualToken closing_bracket);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

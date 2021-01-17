@@ -59,7 +59,7 @@ public:
 
 	ForeachMode mode;
 
-	Foreach(Environment& env);
+	Foreach(Environment& env, VirtualToken token, VirtualToken key, VirtualToken value);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

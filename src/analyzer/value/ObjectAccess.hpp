@@ -32,7 +32,7 @@ public:
 	std::function<Compiler::value(Compiler&, Compiler::value)> access_function = nullptr;
 	#endif
 
-	ObjectAccess(Environment& env, VirtualToken token);
+	ObjectAccess(Environment& env, VirtualToken dot, VirtualToken token);
 	virtual ~ObjectAccess();
 
 	virtual bool isLeftValue() const override;

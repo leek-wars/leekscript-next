@@ -18,7 +18,7 @@ public:
 	bool ternary;
 	std::vector<Phi*> phis;
 
-	If(Environment& env, bool ternary = false);
+	If(Environment& env, VirtualToken token, bool ternary = false);
 
 	virtual void print(std::ostream&, int indent, PrintOptions options) const override;
 	virtual Location location() const override;

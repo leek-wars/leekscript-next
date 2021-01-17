@@ -6,7 +6,7 @@ namespace ls {
 bool Error::translation_loaded = false;
 Json Error::translation;
 
-Error::Error(Type type, ErrorLevel level, File* file, size_t line, size_t character) : type(type), level(level), location(file, Position(line, character, 0), Position(line, character + 1, 0)), focus(file, Position(line, character, 0), Position(line, character + 1, 0)) {}
+Error::Error(Type type, ErrorLevel level, File& file, size_t line, size_t character) : type(type), level(level), location(file, Position(line, character, 0), Position(line, character + 1, 0)), focus(file, Position(line, character, 0), Position(line, character + 1, 0)) {}
 
 Error::Error(Type type, ErrorLevel level, Token* token, std::vector<std::string> parameters) : type(type), level(level), location(token->location), focus(token->location), parameters(parameters) {}
 
@@ -18,6 +18,14 @@ Error::~Error() {}
 
 bool Error::operator == (const Error& e) const {
 	return type == e.type and level == e.level and location == e.location and parameters == e.parameters;
+}
+
+bool Error::operator < (const Error& error) const {
+	if (location < error.location) return true;
+	if (type < error.type) return true;
+	if (level < error.level) return true;
+	if (parameters < error.parameters) return true;
+	return false;
 }
 
 std::string Error::message() const {
@@ -32,7 +40,7 @@ std::string Error::build_message(Type type, std::vector<std::string> parameters)
 
 	if (!translation_loaded) {
 		try {
-			translation = Json::parse(Util::read_file("src/doc/error_fr.json"));
+			translation = Json::parse(Util::read_file("data/error_fr.json"));
 		} catch (std::exception&) {} // LCOV_EXCL_LINE
 		translation_loaded = true;
 	}

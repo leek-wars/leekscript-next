@@ -1,6 +1,7 @@
 #include "MapSTD.hpp"
 #include "../../type/Type.hpp"
 #include "../../analyzer/semantic/Variable.hpp"
+#include "../../analyzer/semantic/FunctionVersion.hpp"
 #include "../../environment/Environment.hpp"
 #if COMPILER
 #include "../../vm/value/LSMap.hpp"
@@ -440,12 +441,12 @@ Compiler::value MapSTD::clear(Compiler& c, std::vector<Compiler::value> args, in
 Compiler::value MapSTD::fold_left(Compiler& c, std::vector<Compiler::value> args, int) {
 	auto function = args[1];
 	auto init_type = function.t->argument(0);
-	auto result = Variable::new_temporary("r", init_type);
+	auto result = Variable::new_temporary("r", init_type, *c.fun->parent);
 	result.create_entry(c);
 	c.insn_store(result.entry, c.insn_convert(c.insn_move(args[2]), init_type));
 	// c.add_temporary_variable(&result);
-	auto v = Variable::new_temporary("v", args[0].t->element());
-	auto k = Variable::new_temporary("k", args[0].t->key());
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
+	auto k = Variable::new_temporary("k", args[0].t->key(), *c.fun->parent);
 	// v->create_entry(c);
 	// k->create_entry(c);
 	// c.add_temporary_variable(v);
@@ -460,12 +461,12 @@ Compiler::value MapSTD::fold_left(Compiler& c, std::vector<Compiler::value> args
 Compiler::value MapSTD::fold_right(Compiler& c, std::vector<Compiler::value> args, int) {
 	auto function = args[1];
 	auto init_type = function.t->argument(2);
-	auto result = Variable::new_temporary("r", init_type);
+	auto result = Variable::new_temporary("r", init_type, *c.fun->parent);
 	result.create_entry(c);
 	c.insn_store(result.entry, c.insn_convert(c.insn_move(args[2]), init_type));
 	// c.add_temporary_variable(&result);
-	auto v = Variable::new_temporary("v", args[0].t->element());
-	auto k = Variable::new_temporary("k", args[0].t->key());
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
+	auto k = Variable::new_temporary("k", args[0].t->key(), *c.fun->parent);
 	// v->create_entry(c);
 	// k->create_entry(c);
 	// c.add_temporary_variable(v);
@@ -479,8 +480,8 @@ Compiler::value MapSTD::fold_right(Compiler& c, std::vector<Compiler::value> arg
 
 Compiler::value MapSTD::iter(Compiler& c, std::vector<Compiler::value> args, int) {
 	auto function = args[1];
-	auto v = Variable::new_temporary("v", args[0].t->element());
-	auto k = Variable::new_temporary("k", args[0].t->key());
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
+	auto k = Variable::new_temporary("k", args[0].t->key(), *c.fun->parent);
 	// v->create_entry(c);
 	// k->create_entry(c);
 	// c.add_temporary_variable(v);

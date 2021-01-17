@@ -28,7 +28,13 @@ namespace ls {
 
 int Function::id_counter = 0;
 
-Function::Function(Environment& env, VirtualToken token, File* file) : Value(env), file(file), token(token) {
+Function::Function(Environment& env, File& file) : Value(env), file(file), token(*this, 0) {
+	parent = nullptr;
+	constant = true;
+	callable = std::make_unique<Callable>();
+}
+
+Function::Function(Environment& env, VirtualToken token, File& file) : Value(env), file(file), token(token) {
 	parent = nullptr;
 	constant = true;
 	callable = std::make_unique<Callable>();
@@ -75,8 +81,8 @@ Location Function::location() const {
 	return default_version->body->location();
 }
 
-void Function::create_default_version(SemanticAnalyzer* analyzer) {
-	if (default_version) return;
+void Function::create_default_version(SemanticAnalyzer* analyzer, bool force) {
+	if (default_version and !force) return;
 	auto& env = analyzer->env;
 
 	default_version = std::make_unique<FunctionVersion>(analyzer->env, std::move(body));
@@ -292,7 +298,7 @@ Hover Function::hover(SemanticAnalyzer& analyzer, size_t position) const {
 	return version->hover(analyzer, position);
 }
 
-Hover Function::hover(SemanticAnalyzer& analyzer, File* file, size_t position) const {
+Hover Function::hover(SemanticAnalyzer& analyzer, File& file, size_t position) const {
 	return default_version->hover(analyzer, file, position);
 }
 
@@ -368,7 +374,6 @@ std::unique_ptr<Value> Function::clone(Block* parent) const {
 	auto f = std::make_unique<Function>(type->env, token, file);
 	f->lambda = lambda;
 	f->name = name;
-	f->file = file;
 	f->hash = hash;
 	f->token_count = token_count;
 	f->token_offset = token_offset;

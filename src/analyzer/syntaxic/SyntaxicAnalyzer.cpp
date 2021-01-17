@@ -45,54 +45,59 @@
 
 namespace ls {
 
-SyntaxicAnalyzer::SyntaxicAnalyzer(Environment& env, Resolver* resolver, File* root_file) : lexical(env.legacy), resolver(resolver), env(env) {
+SyntaxicAnalyzer::SyntaxicAnalyzer(Environment& env, Resolver* resolver, File& file, File& root_file) :
+	lexical(env.legacy), resolver(resolver), file(file), root_file(root_file), env(env)
+{
 	time = 0;
 	nt = nullptr;
 	t = nullptr;
 	i = 0;
-	this->root_file = root_file;
-	this->root_file->included_files.clear();
+	root_file.included_files.clear();
 }
 
-Block* SyntaxicAnalyzer::analyze(File* file, Program* program) {
-	this->file = file;
-	this->program = program;
+Block* SyntaxicAnalyzer::analyze() {
 
 	// Get the global functions to save them from destruction
 	// std::cout << (void*) program->main.get() << " " << (void*) program->main->default_version.get() << std::endl;
-	if (program->main and program->main->default_version.get() and program->main->default_version->body) {
+	if (file.program.main.default_version.get() and file.program.main.default_version->body) {
 		// std::cout << program->main->default_version->body->instructions.size() << std::endl;
-		for (const auto& instruction : program->main->default_version->body->instructions) {
+		for (const auto& instruction : file.program.main.default_version->body->instructions) {
 			if (auto vd = dynamic_cast<VariableDeclaration*>(instruction.get())) {
 				if (vd->global and vd->function) {
 					auto function = (Function*) vd->expressions[0].release();
-					program->functions[vd->variables[0]->content] = function;
+					file.program.functions.emplace(vd->variables[0]->content, (Function&) function);
 					// std::cout << "add function " << vd->variables[0]->content << " " << (void*)function << std::endl;
 				}
 			}
 		}
 	}
-	program->main = std::make_unique<Function>(env, VirtualToken {}, program->main_file);
 
 	// Call the lexical analyzer to parse tokens, only if the file was never read before
-	if (not file->tokens_read) {
-		file->tokens = lexical.analyze(file);
-		file->tokens_read = true;
+	// std::cout << "File tokens? " << file.tokens_read << std::endl;
+	if (not file.tokens_read) {
+		file.tokens = lexical.analyze(file);
+		file.tokens_read = true;
+		// std::cout << "file tokens = " << file.tokens.size() << " : ";
+		// for (auto& t : file.tokens) {
+		// 	std::cout << t.content;
+		// }
+		// std::cout << std::endl;
 	}
 
-	this->t = &file->tokens.at(0);
-	this->nt = file->tokens.size() > 1 ? &file->tokens.at(1) : nullptr;
+	this->t = &file.tokens.at(0);
+	this->nt = file.tokens.size() > 1 ? &file.tokens.at(1) : nullptr;
 	this->i = 0;
-	current_function = program->main.get();
+	current_function = &file.program.main;
 	functions.push(current_function);
+	std::cout << "current function " << (void*)current_function << " tokens " << current_function->file.tokens.size() << " fun " << (void*) &current_function->file << std::endl;
 
-	return eatMain(file);
+	return eatMain();
 }
 
-Block* SyntaxicAnalyzer::eatMain(File* file) {
+Block* SyntaxicAnalyzer::eatMain() {
 
-	auto block = new Block(env, true);
-	file->waiting = nullptr;
+	auto block = new Block(env, get_null_token(), get_null_token(), true);
+	file.waiting = nullptr;
 
 	while (true) {
 		if (t->type == TokenType::FINISHED) {
@@ -109,12 +114,13 @@ Block* SyntaxicAnalyzer::eatMain(File* file) {
 						if (fc->arguments.size() == 1) {
 							auto str = dynamic_cast<String*>(fc->arguments.at(0).get());
 							if (vv->name == "include" and str) {
-								auto included_file = resolver->resolve(str->token->content, file->context);
+								auto included_file = resolver->resolve(env, str->token->content, file.context);
 								if (included_file) {
 									// Not already included?
-									if (included_file != root_file and std::find(root_file->included_files.begin(), root_file->included_files.end(), included_file) == root_file->included_files.end()) {
+									if (included_file != &root_file and std::find(root_file.included_files.begin(), root_file.included_files.end(), included_file) == root_file.included_files.end()) {
 										// std::cout << "include " << included_file->path << std::endl;
-										included_file->includers_files[file->path] = file;
+										// included_file->includers_files[file.path] = file;
+										included_file->includers_files.emplace(file.path, file);
 
 										// The included file is waiting for the file we are currently analyzing, so it's not waiting anymore
 										// if (included_file->waiting == root_file) {
@@ -128,9 +134,9 @@ Block* SyntaxicAnalyzer::eatMain(File* file) {
 											return block;
 										}
 										// std::cout << "include " << included_file->path << std::endl;
-										file->included_files.push_back(included_file);
-										root_file->included_files.push_back(included_file);
-										root_file->program->included_files.insert(included_file);
+										file.included_files.push_back(included_file);
+										root_file.included_files.push_back(included_file);
+										root_file.program.included_files.insert(included_file);
 
 										// Add the include() function call in the file for inspection
 										ins->include = true;
@@ -138,20 +144,24 @@ Block* SyntaxicAnalyzer::eatMain(File* file) {
 										fc->included_file = included_file;
 										block->add_instruction(ins);
 
-										// std::cout << "included file " << included_file->code << std::endl;
-										auto included_block = SyntaxicAnalyzer(env, resolver, root_file).analyze(included_file, program);
+										auto included_block = SyntaxicAnalyzer(env, resolver, (File&) *included_file, root_file).analyze();
+										// std::cout << "included file " << included_file->code << " " << included_block->instructions.size() << " instructions" << std::endl;
+
 										for (auto& instruction : included_block->instructions) {
+											std::cout << "add instruction : ";
+											instruction->print(std::cout, 0, {}); std::cout << std::endl;
 											instruction->included = true;
 											block->add_instruction(instruction.get());
 											instruction.release();
 										}
+										// std::cout << "new block size = " << (void*) block << " " << block->instructions.size() << std::endl;
 									} else {
 										// std::cout << "file " << included_file->path << " already included" << std::endl;
 									}
 									continue;
 								} else {
 									auto location = fc->arguments.at(0)->location();
-									root_file->errors.push_back(Error(Error::Type::NO_SUCH_FILE, ErrorLevel::ERROR, location, location, { str->token->content }));
+									root_file.errors.push_back(Error(Error::Type::NO_SUCH_FILE, ErrorLevel::ERROR, location, location, { str->token->content }));
 								}
 							}
 						}
@@ -214,7 +224,7 @@ Block* SyntaxicAnalyzer::eatBlock(Block* parent, bool is_function_block, bool si
 				break;
 			} else if (t->type == TokenType::FINISHED || t->type == TokenType::ELSE || t->type == TokenType::END || t->type == TokenType::IN) {
 				if (brace) {
-					file->errors.push_back(Error(Error::Type::BLOCK_NOT_CLOSED, ErrorLevel::ERROR, t, {}));
+					file.errors.push_back(Error(Error::Type::BLOCK_NOT_CLOSED, ErrorLevel::ERROR, t, {}));
 				}
 				break;
 			} else if (t->type == TokenType::SEMICOLON) {
@@ -243,7 +253,7 @@ Block* SyntaxicAnalyzer::newEmptyBlock(Block* parent, Section* after) {
 
 Block* SyntaxicAnalyzer::blockInit(Block* parent, Section* before, bool is_function_block) {
 
-	auto block = new Block(env, is_function_block);
+	auto block = new Block(env, get_null_token(), get_null_token(), is_function_block);
 
 	auto real_before = before ? before : (parent ? parent->sections.back().get() : nullptr);
 
@@ -273,9 +283,8 @@ void SyntaxicAnalyzer::blockEnd(Block* block, Section* after) {
 
 Object* SyntaxicAnalyzer::eatObject(Block* block) {
 
-	auto o = new Object(env);
-
-	o->opening_brace = eat_get_virtual(TokenType::OPEN_BRACE);
+	auto opening_brace = eat_get_virtual(TokenType::OPEN_BRACE);
+	auto o = new Object(env, opening_brace, get_null_token());
 
 	while (t->type == TokenType::IDENT) {
 
@@ -288,7 +297,6 @@ Object* SyntaxicAnalyzer::eatObject(Block* block) {
 		}
 	}
 	o->closing_brace = eat_get_virtual(TokenType::CLOSING_BRACE);
-
 	return o;
 }
 
@@ -384,7 +392,7 @@ Instruction* SyntaxicAnalyzer::eatInstruction(Block* block) {
 
 		default:
 			// std::cout << "Unexpected token : " << (int)t->type << " (" << t->content << ")" << std::endl;
-			file->errors.push_back(Error(Error::Type::UNEXPECTED_TOKEN, ErrorLevel::ERROR, t, {t->content}));
+			file.errors.push_back(Error(Error::Type::UNEXPECTED_TOKEN, ErrorLevel::ERROR, t, {t->content}));
 			eat();
 			return nullptr;
 	}
@@ -392,7 +400,7 @@ Instruction* SyntaxicAnalyzer::eatInstruction(Block* block) {
 
 VariableDeclaration* SyntaxicAnalyzer::eatVariableDeclaration(Block* block) {
 
-	auto vd = new VariableDeclaration(env);
+	auto vd = new VariableDeclaration(env, get_null_token());
 
 	if (t->type == TokenType::GLOBAL) {
 		vd->keyword = eat_get_virtual(TokenType::GLOBAL);
@@ -436,17 +444,18 @@ VariableDeclaration* SyntaxicAnalyzer::eatVariableDeclaration(Block* block) {
 	return vd;
 }
 
-Function* SyntaxicAnalyzer::eatFunction(Block* block, VirtualToken token, bool global_function) {
+Function* SyntaxicAnalyzer::eatFunction(Block* block, bool global_function) {
 
 	auto start_position = i - 2; // function <ident> [here]
 
+	auto f = new Function(env, file);
 	if (t->type == TokenType::FUNCTION) {
-		token = eat_get_virtual();
+		f->token = eat_get_virtual();
 	}
 
-	auto f = new Function(env, token, file);
 	if (global_function) {
 		current_function = f;
+		// std::cout << "current function = " << (void*)f << std::endl;
 		functions.push(current_function);
 		f->token_offset = start_position;
 	}
@@ -495,6 +504,7 @@ Function* SyntaxicAnalyzer::eatFunction(Block* block, VirtualToken token, bool g
 	if (global_function) {
 		functions.pop();
 		current_function = functions.top();
+		// std::cout << "current function = " << (void*)f << std::endl;
 	}
 
 	return f;
@@ -506,39 +516,39 @@ VariableDeclaration* SyntaxicAnalyzer::eatFunctionDeclaration(Block* block) {
 
 	eat(TokenType::FUNCTION);
 
-	auto vd = new VariableDeclaration(env);
+	auto vd = new VariableDeclaration(env, get_null_token());
 	vd->global = true;
 	vd->function = true;
 
 	auto ident = eat_get(TokenType::IDENT);
 
-	auto f = program->functions.find(ident->content);
-	if (f != program->functions.end()) {
+	auto f = file.program.functions.find(ident->content);
+	if (f != file.program.functions.end()) {
 
-		int new_hash = compute_hash(start, start + f->second->token_count);
+		int new_hash = compute_hash(start, start + f->second.token_count);
 
-		// std::cout << "found! " << f->second->name << " " << f->second->hash << " " << f->second->token_count << " new hash=" << new_hash << std::endl;
+		// std::cout << "found! " << f->second.name << " " << f->second.hash << " " << f->second.token_count << " new hash=" << new_hash << std::endl;
 
-		if (new_hash == f->second->hash) {
+		if (new_hash == f->second.hash) {
 
-			// std::cout << "Use existing function " << (void*) f->second << std::endl;
+			// std::cout << "Use existing function " << (void*) &f->second << std::endl;
 
-			i += (f->second->token_count - 3);
+			i += (f->second.token_count - 3);
 			eat();
 
-			f->second->token_offset = start;
+			f->second.token_offset = start;
 			vd->variables.push_back(VirtualToken { f->second, 1 });
-			vd->expressions.emplace_back(f->second);
+			vd->expressions.emplace_back(&f->second);
 
 			return vd;
 		}
 	}
 
-	auto function = eatFunction(block, {}, true);
+	auto function = eatFunction(block, true);
 	// std::cout << "Function " << ident->content << " created: hash=" << function->hash << " " << function->token_count << " offset=" << function->token_offset << std::endl;
 
-	vd->keyword = { function, 0u };
-	vd->variables.push_back({ function, 1u });
+	vd->keyword = { (Function&) *function, 0u };
+	vd->variables.push_back({ (Function&) *function, 1u });
 	vd->expressions.emplace_back(function);
 
 	return vd;
@@ -557,7 +567,7 @@ int SyntaxicAnalyzer::findNextClosingParenthesis() {
 	int p = i;
 	int level = 1;
 	while (level > 0) {
-		auto t = file->tokens.at(p++).type;
+		auto t = file.tokens.at(p++).type;
 		if (t == TokenType::FINISHED) return -1;
 		if (t == TokenType::OPEN_PARENTHESIS) level++;
 		if (t == TokenType::CLOSING_PARENTHESIS) level--;
@@ -568,7 +578,7 @@ int SyntaxicAnalyzer::findNextClosingParenthesis() {
 int SyntaxicAnalyzer::findNextArrow() {
 	int p = i;
 	while (true) {
-		auto t = file->tokens.at(p++).type;
+		auto t = file.tokens.at(p++).type;
 		if (t == TokenType::FINISHED) return -1;
 		if (t == TokenType::ARROW) break;
 	}
@@ -578,7 +588,7 @@ int SyntaxicAnalyzer::findNextArrow() {
 int SyntaxicAnalyzer::findNextColon() {
 	int p = i;
 	while (true) {
-		auto t = file->tokens.at(p++).type;
+		auto t = file.tokens.at(p++).type;
 		if (t == TokenType::FINISHED) return -1;
 		if (t == TokenType::COLON) break;
 	}
@@ -586,11 +596,11 @@ int SyntaxicAnalyzer::findNextColon() {
 }
 
 void SyntaxicAnalyzer::splitCurrentOrInTwoPipes() {
-	file->tokens.erase(file->tokens.begin() + i);
-	file->tokens.insert(file->tokens.begin() + i, { TokenType::PIPE, file, t->location.end.raw, t->location.start.line, t->location.end.column, "|" });
-	file->tokens.insert(file->tokens.begin() + i + 1, { TokenType::PIPE, file, t->location.end.raw + 1, t->location.start.line, t->location.end.column + 1, "|" });
-	t = &file->tokens.at(i);
-	nt = &file->tokens.at(i + 1);
+	// file.tokens.erase(file.tokens.begin() + i);
+	// file.tokens.insert(file.tokens.begin() + i, { TokenType::PIPE, file, t->location.end.raw, t->location.start.line, t->location.end.column, "|" });
+	// file.tokens.insert(file.tokens.begin() + i + 1, { TokenType::PIPE, file, t->location.end.raw + 1, t->location.start.line, t->location.end.column + 1, "|" });
+	// t = &file.tokens.at(i);
+	// nt = &file.tokens.at(i + 1);
 }
 
 Value* SyntaxicAnalyzer::eatSimpleExpression(Block* block, bool pipe_opened, bool set_opened, bool comma_list, Value* initial) {
@@ -610,15 +620,17 @@ Value* SyntaxicAnalyzer::eatSimpleExpression(Block* block, bool pipe_opened, boo
 			}
 
 			auto open_pipe = eat_get_virtual();
-			auto av = new AbsoluteValue(env);
-			av->open_pipe = open_pipe;
-			av->expression = std::unique_ptr<Value>(eatExpression(block, true));
+			auto expression = eatExpression(block, true);
 
 			// We want a closing pipe, if there's a || operator, we split it
 			if (t->type == TokenType::OR and t->content == "||") {
 				splitCurrentOrInTwoPipes();
 			}
-			av->close_pipe = eat_get_virtual(TokenType::PIPE);
+			auto close_pipe = eat_get_virtual(TokenType::PIPE);
+
+			auto av = new AbsoluteValue(env, open_pipe, close_pipe);
+			av->expression = std::unique_ptr<Value>(expression);
+
 			e = new Expression(env, av);
 
 		} else {
@@ -695,41 +707,48 @@ Value* SyntaxicAnalyzer::eatSimpleExpression(Block* block, bool pipe_opened, boo
 		switch (t->type) {
 			case TokenType::OPEN_BRACKET: {
 
-				auto aa = new ArrayAccess(env);
-				aa->open_bracket = eat_get_virtual(TokenType::OPEN_BRACKET);
+				auto open_bracket = eat_get_virtual(TokenType::OPEN_BRACKET);
 
-				aa->array = std::unique_ptr<Value>(e);
+				std::unique_ptr<Value> key = nullptr, key2 = nullptr;
 				if (t->type == TokenType::CLOSING_BRACKET) {
-					aa->key = nullptr;
+					key = nullptr;
 				} else {
-					aa->key = std::unique_ptr<Value>(eatExpression(block));
+					key = std::unique_ptr<Value>(eatExpression(block));
 				}
 				if (t->type == TokenType::COLON) {
 					eat();
-					aa->key2 = std::unique_ptr<Value>(eatExpression(block));
+					key2 = std::unique_ptr<Value>(eatExpression(block));
 				}
-				aa->close_bracket = eat_get_virtual(TokenType::CLOSING_BRACKET);
+				auto close_bracket = eat_get_virtual(TokenType::CLOSING_BRACKET);
+
+				auto aa = new ArrayAccess(env, open_bracket, close_bracket);
+				aa->array = std::unique_ptr<Value>(e);
+				aa->key = std::move(key);
+				aa->key2 = std::move(key2);
 				e = aa;
 				break;
 			}
 			case TokenType::OPEN_PARENTHESIS: {
 
-				auto par = eat_get_virtual(TokenType::OPEN_PARENTHESIS);
+				auto opening_par = eat_get_virtual(TokenType::OPEN_PARENTHESIS);
 
-				auto fc = new FunctionCall(env, par);
-				fc->opening_parenthesis = par;
-				fc->function = std::unique_ptr<Value>(e);
-
+				std::vector<Value*> expressions;
 				if (t->type != TokenType::CLOSING_PARENTHESIS) {
-					fc->arguments.emplace_back(eatExpression(block, false, false, nullptr, true));
+					expressions.push_back(eatExpression(block, false, false, nullptr, true));
 					while (t->type != TokenType::CLOSING_PARENTHESIS && t->type != TokenType::FINISHED) {
 						if (t->type == TokenType::COMMA) {
 							eat();
 						}
-						fc->arguments.emplace_back(eatExpression(block, false, false, nullptr, true));
+						expressions.push_back(eatExpression(block, false, false, nullptr, true));
 					}
 				}
-				fc->closing_parenthesis = eat_get_virtual(TokenType::CLOSING_PARENTHESIS);
+				auto closing_par = eat_get_virtual(TokenType::CLOSING_PARENTHESIS);
+
+				auto fc = new FunctionCall(env, opening_par, closing_par);
+				fc->function = std::unique_ptr<Value>(e);
+				for (const auto& ex : expressions) {
+					fc->arguments.emplace_back(ex);
+				}
 
 				e = fc;
 				break;
@@ -740,15 +759,15 @@ Value* SyntaxicAnalyzer::eatSimpleExpression(Block* block, bool pipe_opened, boo
 				auto dot = eat_get_virtual(TokenType::DOT);
 
 				if (t->type == TokenType::NEW || t->type == TokenType::CLASS) {
-					oa = new ObjectAccess(env, eat_get_virtual());
+					oa = new ObjectAccess(env, dot, eat_get_virtual());
 				} else if (t->type == TokenType::RETURN) {
-					oa = new ObjectAccess(env, eat_get_virtual());
+					oa = new ObjectAccess(env, dot, eat_get_virtual());
 				} else if (t->type == TokenType::IDENT) {
-					oa = new ObjectAccess(env, eatIdent());
+					oa = new ObjectAccess(env, dot, eatIdent());
 				} else {
-					oa = new ObjectAccess(env, {});
+					assert(false);
+					// oa = new ObjectAccess(env, dot, {});
 				}
-				oa->dot = dot;
 				oa->object = std::unique_ptr<Value>(e);
 				e = oa;
 				break;
@@ -833,8 +852,8 @@ Value* SyntaxicAnalyzer::eatExpression(Block* block, bool pipe_opened, bool set_
 
 	// Ternary
 	if (t->type == TokenType::QUESTION_MARK) {
-		eat();
-		auto ternary = new If(env, true);
+		auto token = eat_get_virtual();
+		auto ternary = new If(env, token, true);
 		ternary->condition = std::unique_ptr<Value>(e);
 
 		ternary->end_section = new Section(env, "end_if");
@@ -876,6 +895,7 @@ Value* SyntaxicAnalyzer::eatValue(Block* block, bool comma_list) {
 		case TokenType::NUMBER:
 		{
 			auto n_token = eat_get_virtual();
+			// std::cout << "number token : " << (void*)&n_token.function << " " << n_token.index << std::endl;
 			auto n = new Number(env, n_token->content, n_token);
 
 			if (t->type == TokenType::STAR) {
@@ -925,14 +945,14 @@ Value* SyntaxicAnalyzer::eatValue(Block* block, bool comma_list) {
 			return eatMatch(block, true);
 
 		case TokenType::FUNCTION:
-			return eatFunction(block, {});
+			return eatFunction(block);
 
 		case TokenType::ARROW:
 		{
 			auto token = eat_get_virtual(TokenType::ARROW);
 			Function* l = new Function(env, token, file);
 			l->lambda = true;
-			l->body = std::make_unique<Block>(env, true);
+			l->body = std::make_unique<Block>(env, get_null_token(), get_null_token(), true);
 			l->body->add_instruction(new ExpressionInstruction(env, std::unique_ptr<Value>(eatExpression(l->body.get()))));
 			return l;
 		}
@@ -941,7 +961,7 @@ Value* SyntaxicAnalyzer::eatValue(Block* block, bool comma_list) {
 			break;
 	}
 
-	file->errors.push_back(Error(Error::EXPECTED_VALUE, ErrorLevel::ERROR, t, {t->content}));
+	file.errors.push_back(Error(Error::EXPECTED_VALUE, ErrorLevel::ERROR, t, {t->content}));
 	eat();
 	return nullptr;
 }
@@ -1047,7 +1067,7 @@ Value* SyntaxicAnalyzer::eatLambdaOrParenthesisExpression(Block* block, bool pip
  * Continue to eat a lambda starting from a comma or the arrow
  */
 Value* SyntaxicAnalyzer::eatLambdaContinue(Block* block, bool parenthesis, Ident ident, Value* expression, bool comma_list) {
-	auto l = new Function(env, {}, file);
+	auto l = new Function(env, file);
 	l->lambda = true;
 	// Add first argument
 	l->addArgument(ident.token, expression, false);
@@ -1068,7 +1088,7 @@ Value* SyntaxicAnalyzer::eatLambdaContinue(Block* block, bool parenthesis, Ident
 	}
 	auto token = eat_get_virtual(TokenType::ARROW);
 	l->token = token;
-	l->body = std::make_unique<Block>(env, true);
+	l->body = std::make_unique<Block>(env, get_null_token(), get_null_token(), true);
 	l->body->add_instruction(new ExpressionInstruction(env, std::unique_ptr<Value>(eatExpression(l->body.get(), false, false, nullptr, comma_list))));
 	if (parenthesis) {
 		eat(TokenType::CLOSING_PARENTHESIS);
@@ -1082,18 +1102,13 @@ Value* SyntaxicAnalyzer::eatArrayOrMap(Block* block) {
 
 	// Empty array
 	if (t->type == TokenType::CLOSING_BRACKET) {
-		auto array = new Array(env);
-		array->opening_bracket = opening_bracket;
-		array->closing_bracket = eat_get_virtual();
-		return array;
+		return new Array(env, opening_bracket, eat_get_virtual());
 	}
 
 	// Empty map
 	if (t->type == TokenType::COLON) {
 		eat();
-		auto map = new Map(env);
-		map->opening_bracket = opening_bracket;
-		map->closing_bracket = eat_get_virtual();
+		auto map = new Map(env, opening_bracket, eat_get_virtual());
 		return map;
 	}
 
@@ -1111,8 +1126,7 @@ Value* SyntaxicAnalyzer::eatArrayOrMap(Block* block) {
 	// eatInterval
 	if (t->type == TokenType::TWO_DOTS) {
 
-		Interval* interval = new Interval(env);
-		interval->opening_bracket = opening_bracket;
+		Interval* interval = new Interval(env, opening_bracket, get_null_token());
 		interval->start = std::unique_ptr<Value>(value);
 		eat();
 		interval->end = std::unique_ptr<Value>(eatExpression(block));
@@ -1124,8 +1138,7 @@ Value* SyntaxicAnalyzer::eatArrayOrMap(Block* block) {
 	// eatMap
 	if (t->type == TokenType::COLON) {
 
-		auto map = new Map(env);
-		map->opening_bracket = opening_bracket;
+		auto map = new Map(env, opening_bracket, VirtualToken {(Function&) *current_function});
 		map->keys.emplace_back(value);
 		eat();
 		map->values.emplace_back(eatExpression(block));
@@ -1142,19 +1155,18 @@ Value* SyntaxicAnalyzer::eatArrayOrMap(Block* block) {
 	}
 
 	// eatArray
-	auto array = new Array(env);
-	array->opening_bracket = opening_bracket;
-	array->expressions.emplace_back(value);
+	auto a = new Array(env, opening_bracket, get_null_token());
+	a->expressions.emplace_back(value);
 	if (t->type == TokenType::COMMA) {
 		eat();
 	}
 	while (t->type != TokenType::CLOSING_BRACKET && t->type != TokenType::FINISHED) {
-		array->expressions.emplace_back(eatExpression(block, false, false, nullptr, true));
+		a->expressions.emplace_back(eatExpression(block, false, false, nullptr, true));
 		if (t->type == TokenType::COMMA)
 			eat();
 	}
-	array->closing_bracket = eat_get_virtual(TokenType::CLOSING_BRACKET);
-	return array;
+	a->closing_bracket = eat_get_virtual(TokenType::CLOSING_BRACKET);
+	return a;
 }
 
 Value* SyntaxicAnalyzer::eatSetOrLowerOperator(Block* block) {
@@ -1165,10 +1177,10 @@ Value* SyntaxicAnalyzer::eatSetOrLowerOperator(Block* block) {
 		return new VariableValue(env, lower);
 	}
 
-	auto set = new Set(env);
+	auto set = new Set(env, lower, get_null_token());
 
 	if (t->type == TokenType::GREATER) {
-		eat();
+		set->closing_chevron = eat_get_virtual();
 		return set;
 	}
 
@@ -1178,16 +1190,15 @@ Value* SyntaxicAnalyzer::eatSetOrLowerOperator(Block* block) {
 		if (t->type == TokenType::COMMA) eat();
 		set->expressions.emplace_back(eatExpression(block, false, true));
 	}
-	eat(TokenType::GREATER);
+	set->closing_chevron = eat_get_virtual(TokenType::GREATER);
 
 	return set;
 }
 
 Value* SyntaxicAnalyzer::eatIf(Block* block) {
 
-	auto iff = new If(env);
-
-	iff->token = eat_get_virtual(TokenType::IF);
+	auto token = eat_get_virtual(TokenType::IF);
+	auto iff = new If(env, token);
 
 	iff->condition = std::unique_ptr<Value>(eatExpression(block));
 
@@ -1272,11 +1283,11 @@ Match* SyntaxicAnalyzer::eatMatch(Block* block, bool force_value) {
 		if (t->type == TokenType::OPEN_BRACE) {
 			match->returns.emplace_back(eatBlockOrObject(block));
 		} else if (force_value) {
-			Block* block = new Block(env);
+			Block* block = new Block(env, get_null_token(), get_null_token());
 			block->add_instruction(new ExpressionInstruction(env, std::unique_ptr<Value>(eatExpression(block))));
 			match->returns.emplace_back(block);
 		} else {
-			Block* body = new Block(env);
+			Block* body = new Block(env, get_null_token(), get_null_token());
 			body->add_instruction(eatInstruction(body));
 			match->returns.emplace_back(body);
 		}
@@ -1340,7 +1351,7 @@ Instruction* SyntaxicAnalyzer::eatFor(Block* block) {
 
 	if (!is_foreach) {
 
-		auto init_block = new Block(env);
+		auto init_block = new Block(env, get_null_token(), get_null_token());
 
 		auto init_section = init_block->sections[0].get();
 		init_section->name = "init";
@@ -1356,9 +1367,8 @@ Instruction* SyntaxicAnalyzer::eatFor(Block* block) {
 		}
 
 		// for inits; condition; increments { body }
-		auto f = new For(env);
+		auto f = new For(env, for_token);
 		loops.push_back(f);
-		f->token = for_token;
 
 		f->end_section = new Section(env, "end_for");
 
@@ -1374,7 +1384,7 @@ Instruction* SyntaxicAnalyzer::eatFor(Block* block) {
 			auto condition = std::unique_ptr<Value>(eatExpression(init_block));
 			eat(TokenType::SEMICOLON);
 			auto instruction = new ExpressionInstruction(env, std::move(condition));
-			f->condition = std::make_unique<Block>(env);
+			f->condition = std::make_unique<Block>(env, get_null_token(), get_null_token());
 			f->condition->sections.front()->name = "condition";
 			f->condition->add_instruction(std::unique_ptr<Instruction>(instruction));
 
@@ -1383,7 +1393,7 @@ Instruction* SyntaxicAnalyzer::eatFor(Block* block) {
 		}
 
 		// increment
-		auto increment_block = new Block(env);
+		auto increment_block = new Block(env, get_null_token(), get_null_token());
 		increment_block->sections.front()->name = "increment";
 		f->continue_section = increment_block->sections.front().get();
 		while (true) {
@@ -1441,8 +1451,7 @@ Instruction* SyntaxicAnalyzer::eatFor(Block* block) {
 	} else {
 
 		// for key , value in container { body }
-		auto f = new Foreach(env);
-		f->token = for_token;
+		auto f = new Foreach(env, for_token, get_null_token(), get_null_token());
 
 		auto wrapper_section = f->wrapper_block->sections[0].get();
 		wrapper_section->name = "wrapper";
@@ -1512,12 +1521,10 @@ Instruction* SyntaxicAnalyzer::eatWhile(Block* block) {
 
 	auto current_section = block->sections.back().get();
 
-	auto w = new While(env);
+	auto w = new While(env, while_token);
 	loops.push_back(w);
 
 	w->end_section = new Section(env, "end");
-
-	w->token = while_token;
 
 	bool parenthesis = false;
 	bool braces = false;
@@ -1529,7 +1536,7 @@ Instruction* SyntaxicAnalyzer::eatWhile(Block* block) {
 
 	auto condition_expression = eatExpression(block);
 	auto condition_instruction = new ExpressionInstruction(env, std::unique_ptr<Value>(condition_expression));
-	w->condition = std::make_unique<Block>(env);
+	w->condition = std::make_unique<Block>(env, get_null_token(), get_null_token());
 	w->condition->add_instruction(std::unique_ptr<Instruction>(condition_instruction));
 	w->continue_section = w->condition->sections.front().get();
 	w->condition->sections.front()->name = "condition";
@@ -1570,12 +1577,10 @@ Instruction* SyntaxicAnalyzer::eatDoWhile(Block* block) {
 
 	auto current_section = block->sections.back().get();
 
-	auto w = new DoWhile(env);
+	auto w = new DoWhile(env, do_token);
 	loops.push_back(w);
 
 	w->end_section = new Section(env, "end");
-
-	w->token = do_token;
 
 	bool parenthesis = false;
 	bool braces = false;
@@ -1593,7 +1598,7 @@ Instruction* SyntaxicAnalyzer::eatDoWhile(Block* block) {
 
 	// Condition
 	auto condition_instruction = new ExpressionInstruction(env, std::unique_ptr<Value>(eatExpression(block)));
-	w->condition = std::make_unique<Block>(env, false, false);
+	w->condition = std::make_unique<Block>(env, get_null_token(), get_null_token(), false, false);
 	w->condition->setSection(std::unique_ptr<Section>(w->continue_section));
 	w->continue_section = w->condition->sections.back().get();
 	w->condition->add_instruction(std::unique_ptr<Instruction>(condition_instruction));
@@ -1624,13 +1629,13 @@ Instruction* SyntaxicAnalyzer::eatDoWhile(Block* block) {
 }
 
 Break* SyntaxicAnalyzer::eatBreak(Block* block) {
-	Break* b = new Break(env);
-	b->token = eat_get_virtual(TokenType::BREAK);
+	auto token = eat_get_virtual(TokenType::BREAK);
+	Break* b = new Break(env, token);
 
 	if (t->type == TokenType::NUMBER /*&& t->line == lt->line*/) {
 		int deepness = std::stoi(t->content);
 		if (deepness <= 0) {
-			file->errors.push_back(Error(Error::Type::BREAK_LEVEL_ZERO, ErrorLevel::ERROR, t, {}));
+			file.errors.push_back(Error(Error::Type::BREAK_LEVEL_ZERO, ErrorLevel::ERROR, t, {}));
 		} else {
 			b->deepness = deepness;
 			eat();
@@ -1638,7 +1643,7 @@ Break* SyntaxicAnalyzer::eatBreak(Block* block) {
 	}
 
 	if (b->deepness > loops.size()) {
-		file->errors.push_back(Error(Error::Type::BREAK_MUST_BE_IN_LOOP, ErrorLevel::ERROR, t, {}));
+		file.errors.push_back(Error(Error::Type::BREAK_MUST_BE_IN_LOOP, ErrorLevel::ERROR, t, {}));
 	} else {
 		auto loop = loops.at(loops.size() - b->deepness);
 
@@ -1650,20 +1655,20 @@ Break* SyntaxicAnalyzer::eatBreak(Block* block) {
 }
 
 Continue* SyntaxicAnalyzer::eatContinue(Block* block) {
-	Continue* c = new Continue(env);
-	c->token = eat_get_virtual(TokenType::CONTINUE);
+	auto token = eat_get_virtual(TokenType::CONTINUE);
+	Continue* c = new Continue(env, token);
 
 	if (t->type == TokenType::NUMBER /*&& t->line == lt->line*/) {
 		int deepness = std::stoi(t->content);
 		if (deepness <= 0) {
-			file->errors.push_back(Error(Error::Type::CONTINUE_LEVEL_ZERO, ErrorLevel::ERROR, t, {}));
+			file.errors.push_back(Error(Error::Type::CONTINUE_LEVEL_ZERO, ErrorLevel::ERROR, t, {}));
 		} else {
 			c->deepness = deepness;
 			eat();
 		}
 	}
 	if (c->deepness > loops.size()) {
-		file->errors.push_back(Error(Error::Type::CONTINUE_MUST_BE_IN_LOOP, ErrorLevel::ERROR, t, {}));
+		file.errors.push_back(Error(Error::Type::CONTINUE_MUST_BE_IN_LOOP, ErrorLevel::ERROR, t, {}));
 	} else {
 		auto loop = loops.at(loops.size() - c->deepness);
 		auto condition = loop->continue_section;
@@ -1715,17 +1720,17 @@ Token* SyntaxicAnalyzer::eat_get(TokenType type) {
 	last_character = t->location.start.column;
 	last_line = t->location.start.line;
 	last_size = t->size;
-	if (i < file->tokens.size() - 1) {
-		t = &file->tokens[++i];
+	if (i < file.tokens.size() - 1) {
+		t = &file.tokens[++i];
 	} else {
-		t = &file->finished_token;
+		t = &file.finished_token;
 	}
-	nt = i < file->tokens.size() - 1 ? &file->tokens[i + 1] : nullptr;
+	nt = i < file.tokens.size() - 1 ? &file.tokens[i + 1] : nullptr;
 
 	if (type != TokenType::DONT_CARE && eaten->type != type) {
-		file->errors.push_back({ Error::Type::UNEXPECTED_TOKEN, ErrorLevel::ERROR, eaten, {eaten->content} });
+		file.errors.push_back({ Error::Type::UNEXPECTED_TOKEN, ErrorLevel::ERROR, eaten, {eaten->content} });
 		// std::cout << "unexpected token : " << to_string((int) type) << " != " << to_string((int) eaten->type) << " (" << eaten->content << ") char " << eaten->location.start.column << std::endl;
-		return &file->finished_token;
+		return &file.finished_token;
 	}
 	return eaten;
 }
@@ -1733,20 +1738,24 @@ Token* SyntaxicAnalyzer::eat_get(TokenType type) {
 VirtualToken SyntaxicAnalyzer::eat_get_virtual(TokenType type) {
 	auto pos = i;
 	eat_get(type);
-	return { current_function, pos - current_function->token_offset };
+	return { (Function&) *current_function, pos - current_function->token_offset };
+}
+
+VirtualToken SyntaxicAnalyzer::get_null_token() {
+	return { (Function&) *current_function };
 }
 
 Token* SyntaxicAnalyzer::nextTokenAt(int pos) {
-	if (i + pos < file->tokens.size())
-		return &file->tokens[i + pos];
+	if (i + pos < file.tokens.size())
+		return &file.tokens[i + pos];
 	else
-		return &file->finished_token;
+		return &file.finished_token;
 }
 
 int SyntaxicAnalyzer::compute_hash(int start_pos, int end_pos) const {
 	int hash = 7;
 	for (int i = start_pos; i <= end_pos; ++i) {
-		hash = 31 * hash + file->tokens[i].hash;
+		hash = 31 * hash + file.tokens[i].hash;
 	}
 	return hash;
 }

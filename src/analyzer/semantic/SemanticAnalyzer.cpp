@@ -12,6 +12,7 @@
 #include "Variable.hpp"
 #include "FunctionVersion.hpp"
 #include "../../colors.h"
+#include <unordered_set>
 
 namespace ls {
 
@@ -26,22 +27,22 @@ void SemanticAnalyzer::analyze(Program* program) {
 	if (not env.legacy) {
 		for (const auto& clazz : env.std.classes) {
 			auto const_class = env.const_class(clazz.first);
-			program->globals.emplace(clazz.first, new Variable(clazz.first, {}, VarScope::INTERNAL, const_class, 0, nullptr, nullptr, nullptr, nullptr, clazz.second->clazz.get()));
+			program->globals.emplace(clazz.first, new Variable(clazz.first, { program->main }, VarScope::INTERNAL, const_class, 0, nullptr, nullptr, nullptr, nullptr, clazz.second->clazz.get()));
 		}
 	}
 
-	program->main->create_default_version(this);
-	enter_function(program->main->default_version.get());
-	enter_block(program->main->default_version->body.get());
+	program->main.create_default_version(this);
+	enter_function(program->main.default_version.get());
+	enter_block(program->main.default_version->body.get());
 
-	enter_section(program->main->default_version->body->sections.front().get());
+	enter_section(program->main.default_version->body->sections.front().get());
 
 	// Add context variables
 	if (program->context) {
 		for (auto& var : program->context->vars) {
 			// std::cout << "Add context var " << var.first << std::endl;
-			var.second.token = std::make_unique<Token>(TokenType::IDENT, program->main_file, 0, 0, 0, var.first);
-			var.second.variable = add_var(VirtualToken { program->main.get(), 0 }, var.second.type, nullptr);
+			var.second.token = std::make_unique<Token>(TokenType::IDENT, program->file, 0, 0, 0, var.first);
+			var.second.variable = add_var(VirtualToken { program->main, 0 }, var.second.type, nullptr);
 			var.second.variable->injected = true;
 			// std::cout << "variable added " << var.second.variable << " " << (void*) var.second.variable << std::endl;
 		}
@@ -50,7 +51,7 @@ void SemanticAnalyzer::analyze(Program* program) {
 	leave_block();
 	leave_function();
 
-	program->main->analyze(this);
+	program->main.analyze(this);
 }
 
 void SemanticAnalyzer::enter_function(FunctionVersion* f) {
