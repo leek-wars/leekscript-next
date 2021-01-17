@@ -4,8 +4,11 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include "../colors.h"
 
 namespace ls {
+
+#define LOG(msg) std::cout << msg << "\t\t\t\t\t\t\t\t" << C_GREY << __FILE__ << ":" << __LINE__ << END_COLOR << std::endl;
 
 class Util {
 public:
