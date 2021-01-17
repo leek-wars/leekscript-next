@@ -89,7 +89,7 @@ Block* SyntaxicAnalyzer::analyze() {
 	this->i = 0;
 	current_function = &file.program.main;
 	functions.push(current_function);
-	// LOG("current function " << (void*)current_function << " tokens " << current_function->file.tokens.size() << " fun " << (void*) &current_function->file)
+	// LOG("current function", (void*)current_function, "tokens", current_function->file.tokens.size(), "fun", (void*) &current_function->file)
 
 	return eatMain();
 }
@@ -148,7 +148,7 @@ Block* SyntaxicAnalyzer::eatMain() {
 										// std::cout << "included file " << included_file->code << " " << included_block->instructions.size() << " instructions" << std::endl;
 
 										for (auto& instruction : included_block->instructions) {
-											// LOG("add instruction : " << instruction);
+											// LOG("add instruction :", instruction);
 											instruction->included = true;
 											block->add_instruction(instruction.get());
 											instruction.release();

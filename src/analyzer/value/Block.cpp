@@ -10,6 +10,7 @@
 #include "../value/If.hpp"
 #include "../../colors.h"
 #include "../Program.hpp"
+#include "../../util/Util.hpp"
 
 namespace ls {
 
@@ -75,9 +76,7 @@ void Block::add_instruction(Instruction* instruction) {
 
 void Block::add_instruction(std::unique_ptr<Instruction> instruction) {
 	if (!instruction) return; // it's possible that the instruction is null (parse failed)
-	// std::cout << "add instruction ";
-	// instruction->print(std::cout, 0, {});
-	// std::cout << std::endl;
+	// LOG("add instruction", instruction);
 	// std::cout << "jumping " << std::boolalpha << instruction->jumping << " end_section " << instruction->end_section << std::endl;
 	jumping |= instruction->jumping;
 	breaking |= instruction->breaking;
@@ -253,7 +252,9 @@ Hover Block::hover(SemanticAnalyzer& analyzer, size_t position) const {
 }
 
 Hover Block::hover(SemanticAnalyzer& analyzer, File& file, size_t position) const {
+	// LOG("block", (void*) this, " instructions ", instructions.size());
 	for (const auto& instruction : instructions) {
+		// LOG("instruction", instruction, (void*) &instruction->location().file, "file =", (void*) &file);
 		if (&instruction->location().file == &file and instruction->location().contains(position)) {
 			return instruction->hover(analyzer, position);
 		}
