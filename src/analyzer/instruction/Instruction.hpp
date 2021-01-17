@@ -64,6 +64,9 @@ public:
 	std::string tabs(int indent) const;
 };
 
+std::ostream& operator << (std::ostream&, const Instruction*);
+std::ostream& operator << (std::ostream&, const std::unique_ptr<Instruction>&);
+
 }
 
 #endif

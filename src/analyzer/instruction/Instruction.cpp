@@ -29,4 +29,14 @@ std::string Instruction::tabs(int indent) const {
 	return std::string(indent * 4, ' ');
 }
 
+std::ostream& operator << (std::ostream& os, const Instruction* instruction) {
+	instruction->print(os, 0, {});
+	return os;
+}
+
+std::ostream& operator << (std::ostream& os, const std::unique_ptr<Instruction>& instruction) {
+	instruction->print(os, 0, {});
+	return os;
+}
+
 }
