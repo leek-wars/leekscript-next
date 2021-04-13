@@ -10,9 +10,9 @@ void Test::test_exceptions() {
 	code("var a = 12m + 5m; throw").exception(ls::vm::Exception::EXCEPTION);
 
 	section("Exceptions - Avoid leaks");
-	code("var x = 'hello' [][0]").exception(ls::vm::Exception::ARRAY_OUT_OF_BOUNDS);
+	DISABLED_code("var x = 'hello' [][0]").exception(ls::vm::Exception::ARRAY_OUT_OF_BOUNDS);
 	code("var x = 'hello' throw").exception(ls::vm::Exception::EXCEPTION);
-	code("let f = -> { var x = 'hello' [][0] } f()").exception(ls::vm::Exception::ARRAY_OUT_OF_BOUNDS, {
+	DISABLED_code("let f = -> { var x = 'hello' [][0] } f()").exception(ls::vm::Exception::ARRAY_OUT_OF_BOUNDS, {
 		{"test", "f", 1}, {"test", "main", 1}
 	});
 	code("let f = -> { var x = 'hello' throw } f()").exception(ls::vm::Exception::EXCEPTION, {
@@ -29,9 +29,9 @@ void Test::test_exceptions() {
 	DISABLED_code("let f = -> { { throw } !? 5 } f()").equals("5");
 	DISABLED_code("let f = -> { (2 \\ 0) !? 6 } f()").equals("6");
 	DISABLED_code("let f = -> { var s = 'leak?' { [][0] } !? 7 } f()").equals("7");
-	code("{ var s = 'leak2' [][0] } !? 8").equals("8");
+	DISABLED_code("{ var s = 'leak2' [][0] } !? 8").equals("8");
 	DISABLED_code("let f = -> { var s = 'leak1' { var s = 'leak2' [][0] } !? 8 } f()").equals("8");
-	code("let a = [12][0] !? 'a' null - 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
+	DISABLED_code("let a = [12][0] !? 'a' null - 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
 
 	section("Stacktraces");
 	std::string f = "test/code/exception/exception.leek";

@@ -23,7 +23,8 @@ ArrayAccess::ArrayAccess(Environment& env, VirtualToken open_bracket, VirtualTok
 
 bool ArrayAccess::isLeftValue() const {
 	return key2 == nullptr // Range access is not left-value (yet)
-		&& not array->type->is_string(); // String access is not yet
+		&& not array->type->is_string() // String access is not yet
+		&& not (array->type->is_fixed_array() and array->type->temporary);
 }
 
 void ArrayAccess::print(std::ostream& os, int indent, PrintOptions options) const {
@@ -89,14 +90,19 @@ void ArrayAccess::analyze(SemanticAnalyzer* analyzer) {
 
 	type = array->type->element();
 
-	// Fixed array => better check
-	if (array->type->is_fixed_array()) {
-		if (auto kn = dynamic_cast<const Number*>(key.get())) {
-			size_t index = kn->int_value;
-			if (index < 0 || index >= array->type->size()) {
-				analyzer->add_error({Error::Type::ARRAY_OUT_OF_BOUNDS, ErrorLevel::WARNING, location(), location(), { array->to_string(), key->to_string(), std::to_string(array->type->size()) }});
+	if (array->type->is_fixed_array_ptr() or array->type->is_fixed_array()) {
+		// Fixed array => better check
+		if (key->constant and key->type->can_be_number()) {
+			fixed_index = 0; // TODO set to 0 to confirm it's a constant numeric key
+			if (auto kn = dynamic_cast<const Number*>(key.get())) {
+				fixed_index = kn->int_value;
+			}
+			auto array_type = array->type->is_fixed_array_ptr() ? array->type->pointed() : array->type;
+			size_t size = array_type->size();
+			if (fixed_index < 0 || fixed_index >= size) {
+				analyzer->add_error({Error::Type::ARRAY_OUT_OF_BOUNDS, ErrorLevel::WARNING, location(), location(), { array->to_string(), std::to_string(fixed_index), std::to_string(size) }});
 			} else {
-				type = array->type->element(kn->int_value);
+				type = array_type->element(fixed_index);
 			}
 		}
 	}
@@ -118,8 +124,25 @@ void ArrayAccess::analyze(SemanticAnalyzer* analyzer) {
 			std::string k = "<key 2>";
 			analyzer->add_error({Error::Type::ARRAY_ACCESS_RANGE_KEY_MUST_BE_NUMBER, ErrorLevel::ERROR, location(), key2->location(), {k}});
 		}
-		type = array->type;
-		type = type->add_temporary();
+
+		if (array->type->is_fixed_array_ptr() or array->type->is_fixed_array()) {
+			// Fixed array => better check
+			if (auto kn = dynamic_cast<const Number*>(key2.get())) {
+				fixed_index2 = kn->int_value;
+				auto array_type = array->type->is_fixed_array_ptr() ? array->type->pointed() : array->type;
+				size_t size = array_type->size();
+				if (fixed_index < 0 || fixed_index >= size) {
+					analyzer->add_error({Error::Type::ARRAY_OUT_OF_BOUNDS, ErrorLevel::WARNING, location(), location(), { array->to_string(), std::to_string(fixed_index), std::to_string(size) }});
+				} else {
+					type = array_type->range(fixed_index, fixed_index2);
+					type = type->add_temporary();
+				}
+			}
+		} else {
+
+			type = array->type;
+			type = type->add_temporary();
+		}
 
 	} else if (array->type->is_array() or array->type->is_string() or array->type->is_interval()) {
 		if (not env.legacy) { // In legacy mode, any type can be used as the key, to transform the array into a map
@@ -143,6 +166,11 @@ void ArrayAccess::analyze(SemanticAnalyzer* analyzer) {
 			}
 		}
 	}
+
+	if (type->is_fixed_array()) {
+		type = type->pointer();
+	}
+
 	// TODO should be temporary
 }
 
@@ -192,7 +220,7 @@ const Type* ArrayAccess::version_type(std::vector<const Type*> version) const {
 		return type;
 	} else {
 		// The array is not homogeneous, so the function inside an array always returns any
-		std::cout << "AA version_type fun_object " << std::endl;
+		// std::cout << "AA version_type fun_object " << std::endl;
 		return Type::fun_object(env.any, { env.any });
 	}
 }
@@ -270,7 +298,31 @@ Compiler::value ArrayAccess::compile(Compiler& c) const {
 			c.inc_ops(2);
 			return res;
 
-		} else if (array->type->is_string() or array->type->is_array()) {
+		} else if (array->type->is_string() or array->type->is_array() or array->type->is_fixed_array_or_ptr()) {
+
+			// std::cout << "array access " << array->type << " " << key->type << std::endl;
+
+			if (array->type->is_fixed_array_or_ptr()) {
+				if (fixed_index >= 0) {
+					c.comment("Array access " + array->to_string() + " at " + std::to_string(fixed_index));
+					// std::cout << "array fixed " << compiled_array.t << " " << fixed_index << std::endl;
+					auto element = c.insn_fixed_array_at(compiled_array, fixed_index);
+					if (element.t->is_fixed_array_ptr() or element.t->is_fixed_array()) {
+						return element;
+					}
+					return element;
+				} else {
+					auto k = key->compile(c);
+					if (k.t->is_polymorphic()) {
+						k = c.insn_invoke(env.integer, {k}, "Array.convert_key");
+					}
+					auto int_key = c.to_int(k);
+					key->compile_end(c);
+
+					auto element = c.insn_fixed_array_at(compiled_array, 0); // TODO use int key
+					return element;
+				}
+			}
 
 			auto k = key->compile(c);
 			if (k.t->is_polymorphic()) {
@@ -311,6 +363,13 @@ Compiler::value ArrayAccess::compile(Compiler& c) const {
 			}
 		}
 	} else {
+
+		// Range Access
+		if ((array->type->is_fixed_array() or array->type->is_fixed_array_ptr()) and fixed_index >= 0) {
+			c.comment("Array range access " + array->to_string() + " from " + std::to_string(fixed_index) + " to " + std::to_string(fixed_index2));
+			return c.insn_fixed_array_range(compiled_array, fixed_index, fixed_index2);
+		}
+
 		auto start = key->compile(c);
 		auto end = key2->compile(c);
 		auto r = c.insn_invoke(type, {compiled_array, start, end}, "Value.range");
@@ -323,9 +382,15 @@ Compiler::value ArrayAccess::compile(Compiler& c) const {
 Compiler::value ArrayAccess::compile_l(Compiler& c) const {
 	const auto& env = c.env;
 
+	// std::cout << "ArrayAccess::compile_l" << std::endl;
+
 	// Compile the array
 	((ArrayAccess*) this)->compiled_array = [&]() {
 		if (array->isLeftValue()) {
+			if (array->type->is_fixed_array_ptr() or array->type->is_fixed_array()) {
+				// std::cout << "compiled_array compile_l" << std::endl;
+				return static_cast<LeftValue*>(array.get())->compile_l(c);
+			}
 			return c.insn_load(static_cast<LeftValue*>(array.get())->compile_l(c));
 		} else {
 			auto a = array->compile(c);
@@ -336,12 +401,28 @@ Compiler::value ArrayAccess::compile_l(Compiler& c) const {
 	}();
 
 	if (key2 == nullptr) {
+
+		if (array->type->is_fixed_array() or array->type->is_fixed_array_ptr()) {
+
+			// std::cout << "array " << fixed_index << std::endl;
+
+			if ((array->type->is_fixed_array() or array->type->is_fixed_array_ptr()) and fixed_index >= 0) {
+				// std::cout << "array fixed " << compiled_array.t << " " << fixed_index << std::endl;
+				c.comment("Array access addr " + array->to_string() + " at " + std::to_string(fixed_index));
+				auto element_addr = c.insn_fixed_array_at_addr(compiled_array, fixed_index);
+				// std::cout << "element_addr " << element_addr.t << std::endl;
+				return element_addr;
+			}
+		}
+
 		// Compile the key
 		auto k = key->compile(c);
 		key->compile_end(c);
 		k = c.insn_convert(k, array->type->key()->fold());
 		// Access
 		c.mark_offset(location().start.line);
+
+
 		if (array->type->is_array()) {
 
 			auto array_size = c.insn_array_size(compiled_array);

@@ -2,6 +2,7 @@
 #include "Any_type.hpp"
 #include "Type.hpp"
 #include "../colors.h"
+#include "../environment/Environment.hpp"
 
 namespace ls {
 
@@ -27,6 +28,59 @@ const std::vector<const Type*>& Pointer_type::arguments() const {
 	return _type->arguments();
 }
 
+const Type* Pointer_type::element() const {
+	if (_type->is_fixed_array()) {
+		return _type->element();
+	}
+	return env.any;
+}
+
+const Type* Pointer_type::element(size_t index) const {
+	if (_type->is_fixed_array()) {
+		return _type->element(index);
+	}
+	return env.any;
+}
+
+const Type* Pointer_type::op_map(SemanticAnalyzer& analyzer, const Type* fun) const {
+	if (_type->is_fixed_array()) {
+		return _type->op_map(analyzer, fun);
+	}
+	return env.void_;
+}
+
+const Type* Pointer_type::op_map(const Type* fun) const {
+	if (_type->is_fixed_array()) {
+		return _type->op_map(fun);
+	}
+	return env.void_;
+}
+
+const Type* Pointer_type::op_filter(SemanticAnalyzer& analyzer, const Type* fun) const {
+	return _type->op_filter(analyzer, fun);
+}
+
+size_t Pointer_type::size() const {
+	if (_type->is_fixed_array()) {
+		return _type->size();
+	}
+	return Type::size();
+}
+
+bool Pointer_type::container() const {
+	if (_type->is_fixed_array()) {
+		return true;
+	}
+	return false;
+}
+
+bool Pointer_type::iterable() const {
+	if (_type->is_fixed_array()) {
+		return true;
+	}
+	return false;
+}
+
 bool Pointer_type::callable() const {
 	if (_type->is_function()) {
 		return true;
@@ -44,13 +98,27 @@ bool Pointer_type::operator == (const Type* type) const {
 int Pointer_type::distance(const Type* type) const {
 	if (not temporary and type->temporary) return -1;
 	if (dynamic_cast<const Any_type*>(type->folded)) { return 10; }
+
 	auto p = dynamic_cast<const Pointer_type*>(type->folded);
+
+	if (_type->is_fixed_array()) {
+		if (type->is_fixed_array_ptr()) {
+			return _type->distance(type->pointed());
+		}
+		if (type->is_fixed_array()) {
+			return _type->distance(type);
+		}
+		return _type->distance(type);
+	}
+
+	// std::cout << "pointer distance to " << type << std::endl;
 	if (_type->is_function()) {
 		if (p and p->pointed()->is_function()) return 0;
 		return _type->distance(type->folded);
 	}
 	if (p) {
 		auto d = _type->distance(p->_type);
+		// std::cout << "distance " << _type << " " << type << " " << d << std::endl;
 		if (d < 0) return d;
 		if (temporary == type->temporary) return d;
 		return d + 1;

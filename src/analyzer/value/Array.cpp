@@ -5,10 +5,10 @@
 
 namespace ls {
 
-	type = Type::tmp_array(env.never);
 Array::Array(Environment& env, VirtualToken opening_bracket, VirtualToken closing_bracket) :
 	Value(env), opening_bracket(opening_bracket), closing_bracket(closing_bracket)
 {
+	type = env.tmp_empty_array;
 }
 
 void Array::print(std::ostream& os, int indent, PrintOptions options) const {
@@ -46,7 +46,7 @@ void Array::analyze(SemanticAnalyzer* analyzer) {
 	if (expressions.size() > 0) {
 
 		std::vector<const Type*> element_types;
-		const Type* element_type = env.void_;
+		// const Type* element_type = env.void_;
 		auto homogeneous = true;
 
 		// First analyze pass
@@ -61,7 +61,7 @@ void Array::analyze(SemanticAnalyzer* analyzer) {
 			if (element_types.size() and element_types.back() != ex->type) {
 				homogeneous = false;
 			}
-			element_type = element_type->operator + (ex->type);
+			// element_type = element_type->operator + (ex->type);
 			element_types.push_back(ex->type);
 		}
 
@@ -70,11 +70,11 @@ void Array::analyze(SemanticAnalyzer* analyzer) {
 		// const Type* new_element_type = env.void_;
 		for (size_t i = 0; i < expressions.size(); ++i) {
 			const auto& ex = expressions[i];
-			if (!homogeneous and ex->type->is_array()) {
+			// if (!homogeneous and ex->type->is_array()) {
 				// If the array stores other arrays of different types,
 				// force those arrays to store pointers. (To avoid having unknown array<int> inside arrays.
 				// ex->will_store(analyzer, env.any);
-			}
+			// }
 			if (ex->type->is_function()) {
 				std::vector<const Type*> types;
 				for (unsigned p = 0; p < ex->type->arguments().size(); ++p) {
@@ -86,11 +86,7 @@ void Array::analyze(SemanticAnalyzer* analyzer) {
 			}
 			// new_element_type = new_element_type-> operator + (ex->type);
 		}
-		#if COMPILER
-			type = Type::tmp_array(element_type->not_temporary());
-		#else
-			type = Type::tmp_fixed_array(element_types);
-		#endif
+		type = Type::tmp_fixed_array(env, element_types);
 	}
 	// std::cout << "Array type : " << type << " " << type->element()->fold() << std::endl;
 }
@@ -108,16 +104,12 @@ void Array::elements_will_take(SemanticAnalyzer* analyzer, const std::vector<con
 		}
 	}
 	// Computation of the new array type
-	const Type* element_type = analyzer->env.void_;
+	std::vector<const Type*> element_types;
 	for (unsigned i = 0; i < expressions.size(); ++i) {
 		const auto& ex = expressions[i];
-		if (i == 0) {
-			element_type = ex->type;
-		} else {
-			element_type = element_type->operator * (ex->type);
-		}
+		element_types.push_back(ex->type);
 	}
-	this->type = Type::tmp_array(element_type);
+	this->type = Type::tmp_fixed_array(analyzer->env, element_types);
 	// std::cout << "Array::elements_will_take type after " << this->type << std::endl;
 }
 
@@ -169,12 +161,13 @@ Hover Array::hover(SemanticAnalyzer& analyzer, size_t position) const {
 #if COMPILER
 Compiler::value Array::compile(Compiler& c) const {
 	std::vector<Compiler::value> elements;
-	for (const auto& val : expressions) {
-		auto v = val->compile(c);
+	for (size_t i = 0; i < expressions.size(); ++i) {
+		auto val = expressions[i].get();
+		auto v = c.insn_convert(val->compile(c), type->element(i));
 		elements.push_back(v);
 	}
 	c.comment(to_string());
-	auto array = c.new_array(type->element(), elements);
+	auto array = c.new_fixed_array(elements);
 	for (const auto& val : expressions) {
 		val->compile_end(c);
 	}

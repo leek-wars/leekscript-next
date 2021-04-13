@@ -1,0 +1,4 @@
+global ITEMS = (function() {
+	var tab = [];
+	return @tab;
+})();

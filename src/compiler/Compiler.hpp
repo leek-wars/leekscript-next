@@ -164,7 +164,7 @@ public:
 	value to_int(value);
 	value to_real(value, bool delete_temporary = false);
 	value to_long(value);
-	value insn_convert(value, const Type*, bool delete_previous = false);
+	value insn_convert(value, const Type*, bool delete_previous = false, bool soft_convert = false);
 	value to_numeric(value);
 
 	// Operators wrapping
@@ -183,7 +183,7 @@ public:
 	value insn_gt(value, value);
 	value insn_ge(value, value);
 	value insn_mul(value, value);
-	value insn_div(value, value);
+	value insn_div(value, value, bool not_zero = false);
 	value insn_int_div(value, value);
 	value insn_bit_and(value, value);
 	value insn_bit_or(value, value);
@@ -227,6 +227,7 @@ public:
 	void  insn_delete(value v);
 	void  insn_delete_variable(value v);
 	void  insn_delete_temporary(value v);
+	void  insn_delete_fixed_array(value v);
 	value insn_get_capture(int index, const Type* type);
 	value insn_get_capture_l(int index, const Type* type);
 	value insn_move_inc(value);
@@ -240,10 +241,18 @@ public:
 
 	// Arrays
 	value new_array(const Type* type, std::vector<value> elements);
+	value new_fixed_array(const Type* type);
+	value new_fixed_array(std::vector<value> elements);
+	value insn_fixed_array_insert(value array, value element, unsigned int index);
 	value insn_array_size(value v);
 	void  insn_push_array(value array, value element);
 	value insn_array_at(value array, value index);
+	value insn_fixed_array_at(value array, int index);
+	value insn_fixed_array_at_addr(value array, int index);
+	value insn_fixed_array_at(value array, value index);
+	value insn_fixed_array_range(value array, int index, int index2);
 	value insn_array_end(value array);
+	std::vector<value> insn_get_fixed_array_values(value array);
 
 	// Iterators
 	value iterator_begin(value v);
@@ -264,6 +273,8 @@ public:
 	void insn_if_new(value cond, label* then, label* elze);
 	void insn_if_sections(value cond, Section* then, Section* elze);
 	void insn_if_not(value v, std::function<void()> then);
+	void insn_if_return(value v, std::function<void()> then);
+	void insn_if_not_return(value v, std::function<void()> then);
 	void insn_throw(value v);
 	void insn_throw_object(vm::Exception type);
 	void insn_label(label*);
@@ -277,10 +288,11 @@ public:
 	// Call functions
 	value insn_invoke(const Type* return_type, std::vector<value> args, std::string name);
 	value insn_invoke(const Type* return_type, std::vector<value> args, value func);
-	value insn_call(value fun, std::vector<value> args);
+	value insn_call(value fun, std::vector<value> args, bool readonly = false);
 	value insn_call(const Type* return_type, std::vector<value> args, std::string name, bool readonly = false);
 	void function_add_capture(value fun, value capture);
 	void log(const std::string&& str);
+	value create_and_call_std_method(std::string name, std::vector<value> args, const Type* return_type, std::function<void(Compiler& c, std::vector<value> args)> fun, bool throws = false);
 
 	// Blocks
 	void enter_block(Block* block);

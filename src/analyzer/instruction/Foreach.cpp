@@ -107,6 +107,7 @@ void Foreach::pre_analyze(SemanticAnalyzer* analyzer) {
 				// std::cout << "mutation " << mutation.variable << " " << mutation.section->id << std::endl;
 				if (mutation.variable->name == phi->variable2->name) {
 					phi->variable2 = mutation.variable;
+					mutation.variable->in_loop = true;
 					// std::cout << "set var for phi " << phi->variable2 << std::endl;
 				}
 			}
@@ -236,6 +237,10 @@ Compiler::value Foreach::compile(Compiler& c) const {
 	if (mode == ForeachMode::COPY) {
 		value_var->create_entry(c);
 		if (key_var) key_var->create_entry(c);
+	}
+
+	if (container_v.t->is_fixed_array() or container_v.t->is_fixed_array_ptr()) {
+		container_v = c.insn_convert(container_v, Type::array(container_v.t->element()));
 	}
 
 	auto output = type->element();

@@ -48,7 +48,7 @@ bool Map_type::operator == (const Type* type) const {
 
 int Map_type::distance(const Type* type) const {
 	if (not temporary and type->temporary) return -1;
-	if (dynamic_cast<const Any_type*>(type->folded)) { return 1000; }
+	if (dynamic_cast<const Any_type*>(type->folded)) { return 100; }
 	if (auto map = dynamic_cast<const Map_type*>(type->folded)) {
 		if (map->element()->is_void() or map->key()->is_void()) {
 			return 999;

@@ -21,24 +21,16 @@ public:
 	virtual const Type* extract(SemanticAnalyzer*, std::vector<Value*> values) const;
 };
 
-class ConvertMutator : public TypeMutator {
-public:
-	bool store_array_size = false;
-	ConvertMutator(bool store_array_size = false) : store_array_size(store_array_size) {}
-	virtual ~ConvertMutator() {}
-	virtual void apply(SemanticAnalyzer*, std::vector<Value*> values, const Type* return_type) const override;
-	#if COMPILER
-	virtual int compile(Compiler&, CallableVersion* callable, std::vector<Value*> values) const override;
-	#endif
-};
-
 class ChangeValueMutator : public TypeMutator {
 public:
-	ChangeValueMutator() {}
+	bool convert = false;
+	bool store_array_size = false;
+	ChangeValueMutator(bool convert = false, bool store_array_size = false) : convert(convert), store_array_size(store_array_size) {}
 	virtual ~ChangeValueMutator() {}
 	virtual void apply(SemanticAnalyzer*, std::vector<Value*> values, const Type* return_type) const override;
 	#if COMPILER
 	virtual int compile(Compiler&, CallableVersion* callable, std::vector<Value*> values) const override;
+	int transform(Compiler& c, Value* value, bool convert) const;
 	#endif
 };
 

@@ -9,6 +9,7 @@ namespace ls {
 void Meta_baseof_type::reset() const {
 	((Meta_baseof_type*) this)->result = nullptr;
 	type->reset();
+	base->reset();
 }
 bool Meta_baseof_type::operator == (const Type* type) const {
 	return false;

@@ -35,12 +35,16 @@
 #include "Compound_type.hpp"
 #include "Meta_or_type.hpp"
 #include "Meta_add_type.hpp"
+#include "Meta_push_type.hpp"
 #include "Meta_mul_type.hpp"
 #include "Meta_baseof_type.hpp"
 #include "Meta_element_type.hpp"
+#include "Meta_elements_type.hpp"
 #include "Meta_temporary_type.hpp"
 #include "Meta_not_temporary_type.hpp"
 #include "Meta_not_void_type.hpp"
+#include "Meta_map_type.hpp"
+#include "Meta_filter_type.hpp"
 #include "../analyzer/value/Function.hpp"
 #include "../analyzer/value/Value.hpp"
 #include "../environment/Environment.hpp"
@@ -69,11 +73,20 @@ const Type* Type::element() const {
 const Type* Type::element(size_t index) const {
 	return env.any;
 }
+const Type* Type::range(size_t index, size_t index2) const {
+	assert(false and "No range() method in this type");
+}
+const Type* Type::change_element(size_t index, const Type* type) const {
+	assert(false and "No change_element() method in this type");
+}
 const std::vector<const Type*>& Type::elements() const {
 	return Type::empty_types;
 }
 size_t Type::size() const {
-	return 0u;
+	assert(false and "No size() method in this type");
+}
+size_t Type::bits() const {
+	assert(false and "Called bits() on unsupported type");
 }
 const Type* Type::key() const {
 	return env.any;
@@ -88,28 +101,55 @@ bool Type::must_manage_memory() const {
 }
 
 const Type* Type::operator | (const Type* type) const {
+
 	if (is_void() or is_never()) return type;
 	if (type->is_void() or type->is_never()) return this;
 
-	if (is_array() and type->is_array()) {
+	// std::cout << this << " " << type << std::endl;
+	if ((is_array() or is_fixed_array_or_ptr()) and (type->is_array() or type->is_fixed_array_or_ptr())) {
+
+		auto t1 = is_fixed_array_ptr() ? pointed() : this;
+		auto t2 = type->is_fixed_array_ptr() ? type->pointed() : type;
+		// std::cout << t1 << " | " << t2 << std::endl;
+
+		const Type* element_type = env.void_;
+		if (t1->is_fixed_array()) {
+			for (const auto& element : t1->elements()) {
+				element_type = element_type->operator | (element);
+			}
+		} else {
+			element_type = element_type->operator | (t1->element());
+		}
+		if (t2->is_fixed_array()) {
+			for (const auto& element : t2->elements()) {
+				element_type = element_type->operator | (element);
+			}
+		} else {
+			element_type = element_type->operator | (t2->element());
+		}
+		// std::cout << "eleme " << all_types << std::endl;
+		if (element_type == env.void_) {
+			return env.tmp_empty_array;
+		}
+
 		bool tmp = temporary or type->temporary;
 		if (tmp) {
-			return Type::tmp_array(element()->operator + (type->element()));
+			return Type::tmp_array(element_type);
 		} else {
-			return Type::array(element()->operator + (type->element()));
+			return Type::array(element_type);
 		}
 		// const auto& sum = element()->operator + (type->element());
 		// if (sum == element()) return this;
 		// if (sum == type->element()) return type;
 	}
 	if (is_set() and type->is_set()) {
-		const auto& sum = element()->operator + (type->element());
+		const auto& sum = element()->operator | (type->element());
 		if (sum == element()) return this;
 		if (sum == type->element()) return type;
 	}
 	if (is_map() and type->is_map()) {
 		bool tmp = temporary or type->temporary;
-		return (tmp ? Type::tmp_map : Type::map)(key()->operator + (type->key()), element()->operator + (type->element()));
+		return (tmp ? Type::tmp_map : Type::map)(key()->operator | (type->key()), element()->operator | (type->element()));
 	}
 	if (is_array() and type->is_map()) {
 		if (element() == env.never) {
@@ -121,55 +161,133 @@ const Type* Type::operator | (const Type* type) const {
 			return this;
 		}
 	}
-	return Type::compound({this, type});
+	return Type::compound(env, {this, type});
 }
+
 const Type* Type::operator * (const Type* t2) const {
 	auto a = this->fold();
 	auto b = t2->fold();
 	if (a == env.void_ or a == env.never) return b;
 	if (b == env.void_ or b == env.never or a == b) return a;
-	if (a->is_polymorphic() and b->is_primitive()) {
-		return env.any;
-	}
-	if (b->is_polymorphic() and a->is_primitive()) {
-		return env.any;
-	}
+	// std::cout << this << " * " << t2 << std::endl;
+	// if (a->is_polymorphic() and b->is_primitive()) {
+	// 	return env.any;
+	// }
+	// if (b->is_polymorphic() and a->is_primitive()) {
+	// 	return env.any;
+	// }
 	if (a->is_bool() or b->is_bool()) {
 		return env.any;
 	}
 	auto d1 = a->distance(b);
 	auto d2 = b->distance(a);
+	// std::cout << d1 << " " << d2 << std::endl;
 	if (d1 >= 0 and d1 < 100000 and d2 >= 0 and d2 < 100000) {
 		if (d1 < d2) return b;
 		else return a;
 	}
+
+	if (is_fixed_array() and t2->is_fixed_array()) {
+		auto all = elements();
+		auto& t2_elements = t2->elements();
+		all.insert(all.end(), t2_elements.begin(), t2_elements.end());
+		return Type::array(Type::compound(env, all));
+	}
+	if (is_fixed_array_ptr() and t2->is_fixed_array_ptr()) {
+		auto all = pointed()->elements();
+		auto& t2_elements = t2->pointed()->elements();
+		all.insert(all.end(), t2_elements.begin(), t2_elements.end());
+		return Type::array(Type::compound(env, all));
+	}
+
 	return env.any;
 }
 
 const Type* Type::add(const Type* type, bool in_loop) const {
-	if (is_fixed_array()) {
-		auto new_elements = elements();
+	// std::cout << "concat " << this << " and " << type << std::endl;
+	if (is_fixed_array() or is_fixed_array_ptr()) {
+		auto t1 = is_fixed_array() ? this : pointed();
+		if ((type->is_array() or type->is_set()) and not type->is_fixed_array()) {
+			return tmp_array(t1->element()->operator | (type->element()));
+		}
+		if (in_loop) {
+			std::vector<const Type*> all_elements = t1->elements();
+			if (type->is_fixed_array_ptr() or type->is_fixed_array()) {
+				all_elements.insert(all_elements.end(), type->elements().begin(), type->elements().end());
+			} else {
+				all_elements.push_back(type);
+			}
+			if (all_elements.size() == 0) {
+				return env.tmp_empty_array;
+			}
+			auto r = tmp_array(Type::compound(env, all_elements));
+			// std::cout << "concat in loop " << t1 << " " << t1->element() << " " << type << " = " << r << std::endl;
+			return r;
+		}
+		auto new_elements = t1->elements();
 		if (type->is_fixed_array()) {
 			for (const auto& element : type->elements()) {
 				new_elements.push_back(element);
 			}
-		} else if (type->is_array()) {
-			return tmp_array(element()->operator + (type->element()));
+		} else {
+			new_elements.push_back(type);
 		}
-		new_elements.push_back(type);
-		return tmp_fixed_array(new_elements);
+		// std::cout << "concat elements " << new_elements << std::endl;
+		return tmp_fixed_array(type->env, new_elements);
 	} else if (is_array()) {
 		if (type->is_fixed_array()) {
-			auto new_elements = elements();
+			std::vector<const Type*> new_elements { element() };
 			for (const auto& element : type->elements()) {
 				new_elements.push_back(element);
 			}
-			return tmp_fixed_array(new_elements);
+			return tmp_fixed_array(type->env, new_elements);
+		} else if (type->is_array()) {
+			return tmp_array(element()->operator | (type->element()));
 		} else {
-			return tmp_array(element()->operator + (type));
+			return tmp_array(element()->operator | (type));
 		}
 	}
-	return operator + (type);
+	return this;
+}
+
+const Type* Type::push(const Type* type, bool in_loop) const {
+	// std::cout << "push " << this << " and " << type << std::endl;
+	if (is_fixed_array_or_ptr()) {
+		auto t1 = is_fixed_array() ? this : pointed();
+		if ((type->is_array() or type->is_set()) and not type->is_fixed_array()) {
+			return tmp_array(t1->element()->operator | (type->element()));
+		}
+		if (in_loop) {
+			std::vector<const Type*> all_elements = t1->elements();
+			if (type->is_fixed_array_ptr() or type->is_fixed_array()) {
+				all_elements.insert(all_elements.end(), type->elements().begin(), type->elements().end());
+			} else {
+				all_elements.push_back(type);
+			}
+			if (all_elements.size() == 0) {
+				return env.tmp_empty_array;
+			}
+			auto r = tmp_array(Type::compound(env, all_elements));
+			// std::cout << "concat in loop " << t1 << " " << t1->element() << " " << type << " = " << r << std::endl;
+			return r;
+		}
+		auto new_elements = t1->elements();
+		new_elements.push_back(type);
+		// std::cout << "concat elements " << new_elements << std::endl;
+		return tmp_fixed_array(type->env, new_elements);
+
+	} else if (is_array()) {
+		if (type->is_fixed_array()) {
+			std::vector<const Type*> new_elements { element() };
+			for (const auto& element : type->elements()) {
+				new_elements.push_back(element);
+			}
+			return tmp_fixed_array(type->env, new_elements);
+		} else {
+			return tmp_array(element()->operator | (type));
+		}
+	}
+	return this;
 }
 
 const Type* Type::fold() const {
@@ -183,6 +301,18 @@ const Type* Type::filter(std::function<bool(const Type*)> fun) const {
 	if (fun(this)) {
 		return this;
 	}
+	return this->env.void_;
+}
+
+const Type* Type::op_map(SemanticAnalyzer& analyzer, const Type* fun) const {
+	return this->env.void_;
+}
+
+const Type* Type::op_map(const Type* fun) const {
+	return this->env.void_;
+}
+
+const Type* Type::op_filter(SemanticAnalyzer& analyzer, const Type* fun) const {
 	return this->env.void_;
 }
 
@@ -323,8 +453,10 @@ bool Type::is_long() const { return folded == env.long_ or folded == env.const_l
 bool Type::is_mpz() const { return folded == env.mpz or folded == env.tmp_mpz or folded == env.const_mpz; }
 bool Type::is_mpz_ptr() const { return folded == env.mpz_ptr or folded == env.tmp_mpz_ptr or folded == env.const_mpz_ptr; }
 bool Type::is_string() const { return folded == env.string or folded == env.tmp_string or folded == env.const_string; }
-bool Type::is_array() const { return is_type<Array_type>(); }
+bool Type::is_array() const { return is_type<Array_type>() or is_type<Fixed_array_type>(); }
 bool Type::is_fixed_array() const { return is_type<Fixed_array_type>(); }
+bool Type::is_fixed_array_ptr() const { return is_pointer() and pointed()->is_type<Fixed_array_type>(); }
+bool Type::is_fixed_array_or_ptr() const { return is_fixed_array() or is_fixed_array_ptr(); }
 bool Type::is_set() const { return is_type<Set_type>(); }
 bool Type::is_interval() const { return folded == env.interval or folded == env.tmp_interval or folded == env.const_interval; }
 bool Type::is_map() const { return is_type<Map_type>(); }
@@ -346,6 +478,7 @@ bool Type::is_closure() const {
 	}
 	return false;
 }
+
 bool Type::is_polymorphic() const {
 	// TODO extends all polymorphic types from Polymorphic_type (Any_type) to improve check
 	return dynamic_cast<const String_type*>(folded) != nullptr
@@ -359,6 +492,7 @@ bool Type::is_polymorphic() const {
 		or dynamic_cast<const Object_type*>(folded) != nullptr
 		or dynamic_cast<const Null_type*>(folded) != nullptr;
 }
+
 bool Type::is_primitive() const {
 	return dynamic_cast<const Integer_type*>(folded) != nullptr
 		or dynamic_cast<const Long_type*>(folded) != nullptr
@@ -366,9 +500,11 @@ bool Type::is_primitive() const {
 		or dynamic_cast<const Bool_type*>(folded) != nullptr
 		or dynamic_cast<const Function_type*>(folded) != nullptr;
 }
+
 bool Type::is_void() const {
 	return this == env.void_;
 }
+
 bool Type::is_template() const { return is_type<Template_type>(); }
 
 bool Type::castable(const Type* type, bool strictCast) const {
@@ -413,33 +549,20 @@ const Type* Type::tmp_array(const Type* element) {
 	return type;
 }
 
-const Type* Type::fixed_array(std::vector<const Type*> elements) {
-	assert(elements.size());
-	// if (auto e = dynamic_cast<const Meta_element_type*>(element)) return e->type;
-	Environment& env = elements.front()->env;
+const Type* Type::fixed_array(Environment& env, std::vector<const Type*> elements) {
 	for (auto& element : elements) {
 		element = element->not_temporary();
 	}
 	auto i = env.fixed_array_types.find(elements);
 	if (i != env.fixed_array_types.end()) return i->second.get();
-	auto type = new Fixed_array_type(elements);
+	auto type = new Fixed_array_type(env, elements);
 	// type->placeholder = element->placeholder;
 	env.fixed_array_types.emplace(elements, type);
 	return type;
 }
 
-const Type* Type::tmp_fixed_array(std::vector<const Type*> elements) {
-	// assert(elements.size());
-	// if (auto e = dynamic_cast<const Meta_element_type*>(element)) return e->type;
-	auto& env = elements.front()->env;
-	for (auto& element : elements) {
-		element = element->not_temporary();
-	}
-	auto i = env.tmp_fixed_array_types.find(elements);
-	if (i != env.tmp_fixed_array_types.end()) return i->second;
-	auto type = fixed_array(elements)->add_temporary();
-	env.tmp_fixed_array_types.insert({elements, type });
-	return type;
+const Type* Type::tmp_fixed_array(Environment& env, std::vector<const Type*> elements) {
+	return fixed_array(env, elements)->add_temporary();
 }
 
 const Type* Type::set(const Type* element) {
@@ -606,12 +729,12 @@ const Type* Type::meta_add(const Type* t1, const Type* t2) {
 	return type;
 }
 
-const Type* Type::meta_concat(const Type* t1, const Type* t2) {
+const Type* Type::meta_push(const Type* t1, const Type* t2) {
 	auto& env = t1->env;
-	auto i = env.meta_concat_types.find({t1, t2});
-	if (i != env.meta_concat_types.end()) return i->second.get();
-	auto type = new Meta_concat_type(t1, t2);
-	env.meta_concat_types.emplace(std::make_pair(t1, t2), type);
+	auto i = env.meta_push_types.find({t1, t2});
+	if (i != env.meta_push_types.end()) return i->second.get();
+	auto type = new Meta_push_type(t1, t2);
+	env.meta_push_types.emplace(std::make_pair(t1, t2), type);
 	return type;
 }
 
@@ -642,6 +765,15 @@ const Type* Type::meta_element(const Type* base) {
 	return type;
 }
 
+const Type* Type::meta_elements(const Type* base) {
+	auto& env = base->env;
+	auto i = env.meta_elements_types.find(base);
+	if (i != env.meta_elements_types.end()) return i->second.get();
+	auto type = new Meta_elements_type(base);
+	env.meta_elements_types.emplace(base, type);
+	return type;
+}
+
 const Type* Type::meta_temporary(const Type* base) {
 	auto& env = base->env;
 	auto i = env.meta_temporary_types.find(base);
@@ -667,6 +799,35 @@ const Type* Type::meta_not_void(const Type* base) {
 	auto type = new Meta_not_void_type(base);
 	env.meta_not_void_types.emplace(base, type);
 	return type;
+}
+
+const Type* Type::meta_map(const Type* array, const Type* fun) {
+	auto& env = array->env;
+	auto key = std::make_pair(array, fun);
+	auto i = env.meta_map_types.find(key);
+	if (i != env.meta_map_types.end()) return i->second.get();
+	auto type = new Meta_map_type(array, fun);
+	env.meta_map_types.emplace(key, type);
+	return type;
+}
+
+const Type* Type::meta_filter(const Type* array, const Type* fun) {
+	auto& env = array->env;
+	auto key = std::make_pair(array, fun);
+	auto i = env.meta_filter_types.find(key);
+	if (i != env.meta_filter_types.end()) return i->second.get();
+	auto type = new Meta_filter_type(array, fun);
+	env.meta_filter_types.emplace(key, type);
+	return type;
+}
+
+std::string Type::vector_to_string(std::vector<const Type*> types) {
+	std::string s;
+	for (size_t t = 0; t < types.size(); ++t) {
+		if (t > 0) s += ", ";
+		s += types[t]->getName();
+	}
+	return s;
 }
 
 std::ostream& operator << (std::ostream& os, const Type* type) {

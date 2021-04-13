@@ -213,8 +213,9 @@ void Expression::analyze(SemanticAnalyzer* analyzer) {
 				}
 				type = is_void ? env.void_ : return_type;
 				if ((v2_type->is_function() or v2_type->is_function_pointer() or v2_type->is_function_object()) and (callable_version.type->argument(1)->is_function() or callable_version.type->argument(1)->is_function_pointer())) {
-					v2->will_take(analyzer, callable_version.type->argument(1)->arguments(), 1);
-					v2->set_version(analyzer, callable_version.type->argument(1)->arguments(), 1);
+
+					// v2->will_take(analyzer, callable_version.type->argument(1)->arguments(), 1);
+					// v2->set_version(analyzer, callable_version.type->argument(1)->arguments(), 1);
 				}
 				// std::cout << "Operator " << v1->to_string() << " (" << v1->type << ") " << op->character << " " << v2->to_string() << "(" << v2->type << ") found! " << return_type << std::endl;
 				return;

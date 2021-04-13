@@ -1,6 +1,7 @@
 #include "VirtualToken.hpp"
 #include "../value/Function.hpp"
 #include "../resolver/File.hpp"
+#include "../../util/Util.hpp"
 
 namespace ls {
 
@@ -17,7 +18,10 @@ VirtualToken& VirtualToken::operator = (const VirtualToken& vt) {
 }
 
 Token* VirtualToken::operator -> () const {
-	assert(index != std::numeric_limits<unsigned int>::max());
+	if (index == std::numeric_limits<unsigned int>::max()) {
+		LOG("virtual token is null");
+		assert(index != std::numeric_limits<unsigned int>::max());
+	}
 	if (function.token_offset + index >= function.file.tokens.size()) {
 		std::cout << function.token_offset << " " << index << " " << function.file.tokens.size() << std::endl;
 		assert(false);

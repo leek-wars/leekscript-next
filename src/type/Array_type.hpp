@@ -19,6 +19,8 @@ public:
 	virtual bool container() const override { return true; }
 	virtual const Type* key() const override;
 	virtual const Type* element() const override;
+	virtual const Type* op_map(SemanticAnalyzer& analyzer, const Type* fun) const override;
+	virtual const Type* op_map(const Type* fun) const override;
 	virtual bool operator == (const Type*) const override;
 	virtual int distance(const Type* type) const override;
 	virtual const Type* iterator() const override;

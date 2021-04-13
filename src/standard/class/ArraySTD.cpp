@@ -28,7 +28,7 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 	 * Constructor
 	 */
 	constructor_({
-		{Type::tmp_array(env.never), {}, ADDR(new_)},
+		{env.tmp_empty_array, {}, ADDR(new_)},
 		{Type::tmp_array(env.boolean), { env.integer }, ADDR((void*) LSArray<char>::constructor)},
 		{Type::tmp_array(env.integer), {env.integer}, ADDR((void*) LSArray<int>::constructor)},
 		{Type::tmp_array(env.long_), {env.integer}, ADDR((void*) LSArray<long>::constructor)},
@@ -39,28 +39,49 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 	/*
 	 * Operators
 	 */
+	auto inA = env.template_("A");
+	template_(inA).
 	operator_("in", {
-		{Type::const_array(env.void_), env.const_any, env.boolean, ADDR(in), THROWS},
+		{ Type::meta_base_of(inA, env.array), env.const_any, env.boolean, ADDR(in), THROWS},
+	});
+
+	auto eqA1 = env.template_("A1");
+	template_(eqA1).
+	operator_("==", {
+		{ Type::meta_base_of(eqA1, env.array), env.const_any, env.boolean, ADDR(eq) },
+	});
+
+	auto ltA1 = env.template_("A1");
+	auto ltA2 = env.template_("A2");
+	template_(ltA1, ltA2).
+	operator_("<", {
+		{ Type::meta_base_of(ltA1, env.array), Type::meta_base_of(ltA2, env.array), env.boolean, ADDR(lt) },
 	});
 
 	auto aT = env.template_("T");
 	auto aE = env.template_("E");
 	template_(aT, aE).
 	operator_("+", {
-		{Type::const_array(aT), aE, Type::meta_concat(Type::const_array(aT), aE), ADDR(op_add)},
-		{Type::meta_base_of(aT, Type::fixed_array({env.void_})), aE, Type::meta_concat(aT, aE), ADDR(op_add)},
-		{Type::const_array(aT), Type::const_array(aE), Type::tmp_array(Type::meta_concat(aT, aE)), ADDR(op_add)},
-		{Type::meta_base_of(aT, Type::fixed_array({env.void_})), Type::meta_base_of(aE, Type::fixed_array({env.void_})), Type::meta_concat(aT, aE), ADDR(op_add)},
+		{ Type::meta_base_of(aT, env.array), aE, Type::meta_add(aT, aE), ADDR(op_add) },
+
+		// {Type::const_array(aT), aE, Type::meta_concat(Type::const_array(aT), aE), ADDR(op_add)},
+		// {Type::meta_base_of(aT, Type::fixed_array({env.void_})), aE, Type::meta_concat(aT, aE), ADDR(op_add)},
+		// {Type::const_array(aT), Type::const_array(aE), Type::tmp_array(Type::meta_concat(aT, aE)), ADDR(op_add)},
+		// {Type::meta_base_of(aT, Type::fixed_array({env.void_})), Type::meta_base_of(aE, Type::fixed_array({env.void_})), Type::meta_concat(aT, aE), ADDR(op_add)},
 	}, LEGACY);
 
+	/*
+	 * X : array += Y ==> X = X + Y
+	 */
 	auto pqT = env.template_("T");
 	auto pqE = env.template_("E");
 	template_(pqT, pqE).
 	operator_("+=", {
-		// array<T> += E   ==> array<T | E>
-		{Type::array(pqT), pqE, Type::array(Type::meta_add(pqT, Type::meta_not_temporary(pqE))), ADDR(array_add_eq), 0, { env.convert_mutator }, true},
-		// array<T> += array<E>   ==> array<T | E>
-		{Type::array(pqT), Type::array(pqE), Type::array(Type::meta_add(pqT, pqE)), ADDR(array_add_eq), 0, { env.convert_mutator }, true},
+		{ Type::meta_base_of(pqT, env.array), pqE, Type::meta_add(pqT, pqE), ADDR(array_add_eq), 0, { env.convert_mutator }, true},
+		// // array<T> += E   ==> array<T | E>
+		// {Type::array(pqT), pqE, Type::array(Type::meta_add(pqT, Type::meta_not_temporary(pqE))), ADDR(array_add_eq), 0, { env.convert_mutator }, true},
+		// // array<T> += array<E>   ==> array<T | E>
+		// {Type::array(pqT), Type::array(pqE), Type::array(Type::meta_add(pqT, pqE)), ADDR(array_add_eq), 0, { env.convert_mutator }, true},
 	}, LEGACY);
 
 	auto mulT = env.template_("T");
@@ -69,48 +90,43 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{Type::const_array(mulT), env.integer, Type::tmp_array(mulT), ADDR(repeat)},
 	});
 
-	auto ttE = env.template_("E");
-	auto ttR = env.template_("R");
-	template_(ttE, ttR).
+	auto ttA = env.template_("A");
+	auto ttF = env.template_("F");
+	template_(ttA, ttF).
 	operator_("~~", {
-		{Type::const_array(ttE), Type::fun(ttR, {ttE}), Type::tmp_array(ttR), ADDR(map)},
+		{ Type::meta_base_of(ttA, env.array), ttF, Type::meta_map(ttA, ttF), ADDR(map) },
 	});
 
 	/*
 	 * Methods
 	 */
+	auto avgA = env.template_("A");
+	template_(avgA).
 	method("average", {
-		{env.real, {Type::const_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_average)},
-		{env.real, {Type::const_array(env.real)}, ADDR((void*) LSArray<double>::ls_average)},
-		{env.real, {Type::const_array(env.long_)}, ADDR((void*) LSArray<long>::ls_average)},
-		{env.real, {Type::const_array(env.integer)}, ADDR((void*) LSArray<int>::ls_average)},
+		{ env.real, { Type::meta_base_of(avgA, env.array) }, ADDR(average)}
 	}, LEGACY);
 
 	method("chunk", {
-		{Type::array(env.array), {Type::const_array(env.void_)}, ADDR((void*) chunk_1_ptr)},
+		{Type::array(env.array), {env.const_array}, ADDR((void*) chunk_1_ptr)},
 		{Type::array(Type::array(env.real)), {Type::const_array(env.real)}, ADDR((void*) chunk_1_float)},
 		{Type::array(Type::array(env.long_)), {Type::const_array(env.long_)}, ADDR((void*) chunk_1_long)},
 		{Type::array(Type::array(env.integer)), {Type::const_array(env.integer)}, ADDR((void*) chunk_1_int)},
-		{Type::array(env.array), {Type::const_array(env.void_), env.const_integer}, ADDR((void*) LSArray<LSValue*>::ls_chunk)},
+		{Type::array(env.array), {env.const_array, env.const_integer}, ADDR((void*) LSArray<LSValue*>::ls_chunk)},
 		{Type::array(Type::array(env.real)), {Type::const_array(env.real), env.const_integer}, ADDR((void*) LSArray<double>::ls_chunk)},
 		{Type::array(Type::array(env.long_)), {Type::const_array(env.long_), env.const_integer}, ADDR((void*) LSArray<long>::ls_chunk)},
 		{Type::array(Type::array(env.integer)), {Type::const_array(env.integer), env.const_integer}, ADDR((void*) LSArray<int>::ls_chunk)},
     });
 
+	auto clA = env.template_("A");
+	template_(clA).
 	method("clear", {
-		{Type::tmp_array(env.never), {Type::const_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_clear)},
-		{Type::tmp_array(env.never), {Type::const_array(env.real)}, ADDR((void*) LSArray<double>::ls_clear)},
-		{Type::tmp_array(env.never), {Type::const_array(env.integer)}, ADDR((void*) LSArray<int>::ls_clear)},
-		{Type::tmp_array(env.never), {Type::tmp_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_clear)},
-		{Type::tmp_array(env.never), {Type::tmp_array(env.real)}, ADDR((void*) LSArray<double>::ls_clear)},
-		{Type::tmp_array(env.never), {Type::tmp_array(env.integer)}, ADDR((void*) LSArray<int>::ls_clear)},
+		{ env.tmp_empty_array, { Type::meta_base_of(clA, env.array) }, ADDR(clear), 0, { env.convert_mutator }  },
 	});
 
+	auto coA = env.template_("A");
+	template_(coA).
 	method("contains", {
-		{env.boolean, {Type::const_array(env.any), env.const_any}, ADDR((void*) LSArray<LSValue*>::ls_contains)},
-		{env.boolean, {Type::const_array(env.real), env.const_real}, ADDR((void*) LSArray<double>::ls_contains)},
-		{env.boolean, {Type::const_array(env.long_), env.const_long}, ADDR((void*) LSArray<long>::ls_contains)},
-		{env.boolean, {Type::const_array(env.integer), env.const_integer}, ADDR((void*) LSArray<int>::ls_contains)},
+		{ env.boolean, { Type::meta_base_of(coA, env.array), env.const_any }, ADDR(in), THROWS},
 	});
 
 	auto iter_ptr = ADDR(&LSArray<LSValue*>::ls_iter<LSFunction*>);
@@ -121,38 +137,58 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{env.void_, {Type::const_array(iE), Type::fun(env.void_, {iE})}, ADDR(iter)},
 	});
 
+	auto aiE = env.template_("E");
+	template_(aiE).
+	method("arrayIter", {
+		{env.void_, {Type::const_array(aiE), Type::fun(env.void_, {aiE})}, (void*) iter_ptr},
+		{env.void_, {Type::const_array(aiE), Type::fun(env.void_, {aiE})}, ADDR(iter)},
+	}, LEGACY_ONLY);
+
 	method("max", {
-		{env.any, {Type::const_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_max), THROWS},
+		{env.any, {env.const_array}, ADDR((void*) LSArray<LSValue*>::ls_max), THROWS},
 		{env.real, {Type::const_array(env.real)}, ADDR((void*) LSArray<double>::ls_max), THROWS},
 		{env.long_, {Type::const_array(env.long_)}, ADDR((void*) LSArray<long>::ls_max), THROWS},
 		{env.integer, {Type::const_array(env.integer)}, ADDR((void*) LSArray<int>::ls_max), THROWS},
 	});
 
+	auto amxT = env.template_("T");
+	template_(amxT).
+	method("arrayMax", {
+		{Type::meta_element(amxT), { Type::meta_base_of(amxT, env.array) }, ADDR(nullptr)},
+		{Type::meta_element(amxT), { Type::meta_base_of(amxT, env.array), Type::fun_object(env.integer, {Type::meta_element(amxT)}) }, ADDR(nullptr)},
+	}, LEGACY_ONLY);
+
 	auto mT = env.template_("T");
 	template_(mT).
 	method("min", {
-		{env.any, {Type::const_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_min), THROWS},
+		{env.any, {env.const_array}, ADDR((void*) LSArray<LSValue*>::ls_min), THROWS},
 		{env.real, {Type::const_array(env.real)}, ADDR((void*) LSArray<double>::ls_min), THROWS},
 		{env.long_, {Type::const_array(env.long_)}, ADDR((void*) LSArray<long>::ls_min), THROWS},
 		{env.integer, {Type::const_array(env.integer)}, ADDR((void*) LSArray<int>::ls_min), THROWS},
 		{mT, {Type::array(mT), Type::fun_object(env.integer, {mT})}, ADDR(min_fun)},
-		{env.any, {Type::const_array(env.never)}, ADDR((void*) LSArray<LSValue*>::ls_min), THROWS},
+		{env.any, {env.const_empty_array}, ADDR((void*) LSArray<LSValue*>::ls_min), THROWS},
 	});
 
-	auto map_fun = ADDR((&LSArray<LSValue*>::ls_map<LSFunction*, LSValue*>));
-	auto E = env.template_("E");
-	auto R = env.template_("R");
-	template_(E, R).
+
+	auto amT = env.template_("T");
+	template_(amT).
+	method("arrayMin", {
+		{Type::meta_element(amT), { Type::meta_base_of(amT, env.array) }, ADDR(min_fun)},
+		{Type::meta_element(amT), { Type::meta_base_of(amT, env.array), Type::fun_object(env.integer, {Type::meta_element(amT)}) }, ADDR(min_fun)},
+	}, LEGACY_ONLY);
+
+	auto mapA = env.template_("A");
+	auto mapF = env.template_("F");
+	template_(mapA, mapF).
 	method("map", {
-		{Type::tmp_array(R), {Type::const_array(E), Type::fun(Type::meta_not_void(R), {E})}, (void*) map_fun},
-		{Type::tmp_array(R), {Type::const_array(E), Type::fun(Type::meta_not_void(R), {E})}, ADDR(map)},
+		{ Type::meta_map(mapA, mapF), { Type::meta_base_of(mapA, env.array), mapF }, ADDR(map) },
 	});
 
-	template_(E, R).
+	auto amapA = env.template_("A");
+	auto amapF = env.template_("F");
+	template_(amapA, amapF).
 	method("arrayMap", {
-		{Type::tmp_array(R), {Type::const_array(E), Type::fun(Type::meta_not_void(R), {E, env.integer})}, (void*) map_fun},
-		{Type::tmp_array(R), {Type::const_array(E), Type::fun(Type::meta_not_void(R), {E})}, ADDR(map)},
-		{Type::tmp_array(R), {Type::const_array(E), Type::fun(Type::meta_not_void(R), {E, env.integer})}, ADDR(map)},
+		{ Type::meta_map(amapA, amapF), { Type::meta_base_of(amapA, env.array), amapF }, ADDR(map) },
 	}, LEGACY_ONLY);
 
 	method("unique", {
@@ -190,18 +226,22 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 	auto map2_ptr_ptr = ADDR((&LSArray<LSValue*>::ls_map2<LSFunction*, LSValue*, LSValue*>));
 	auto map2_ptr_int = ADDR((&LSArray<LSValue*>::ls_map2<LSFunction*, LSValue*, int>));
 	method("map2", {
-		{Type::tmp_array(env.void_), {Type::const_array(env.void_), Type::const_array(env.void_), map2_fun_type}, (void*) map2_ptr_ptr},
-		{Type::tmp_array(env.void_), {Type::const_array(env.void_), Type::const_array(env.integer), map2_fun_type_int}, (void*) map2_ptr_int},
+		{env.tmp_array, {env.const_array, env.const_array, map2_fun_type}, (void*) map2_ptr_ptr},
+		{env.tmp_array, {env.const_array, Type::const_array(env.integer), map2_fun_type_int}, (void*) map2_ptr_int},
 	});
 
-	auto pred_fun_type = Type::fun(env.any, {env.any});
-	auto pred_fun_type_float = Type::fun(env.any, {env.real});
-	auto pred_fun_type_int = Type::fun(env.any, {env.integer});
-	auto fiT = env.template_("T");
-	template_(fiT).
+	auto fiA = env.template_("A");
+	auto fiF = env.template_("F");
+	template_(fiA, fiF).
 	method("filter", {
-		{Type::tmp_array(fiT), {Type::const_array(fiT), Type::fun(env.boolean, {fiT})}, ADDR(filter)},
+		{ Type::meta_filter(fiA, fiF), { Type::meta_base_of(fiA, env.array), fiF }, ADDR(filter) },
 	});
+
+	auto afiT = env.template_("T");
+	template_(afiT).
+	method("arrayFilter", {
+		{Type::tmp_array(afiT), {Type::const_array(afiT), Type::fun(env.boolean, {afiT})}, ADDR(filter)},
+	}, LEGACY_ONLY);
 
 	auto afT = env.template_("T");
 	template_(afT).
@@ -214,8 +254,8 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{env.boolean, {env.array}, ADDR((void*) LSArray<LSValue*>::ls_empty)},
 		{env.boolean, {Type::array(env.real)}, ADDR((void*) LSArray<double>::ls_empty)},
 		{env.boolean, {Type::array(env.integer)}, ADDR((void*) LSArray<int>::ls_empty)},
-		{env.boolean, {Type::array(env.never)}, ADDR((void*) LSArray<LSValue*>::ls_empty)},
-	});
+		{env.boolean, {env.empty_array}, ADDR((void*) LSArray<LSValue*>::ls_empty)},
+	}, LEGACY);
 
 	auto perm_int_int = ADDR(&LSArray<int>::is_permutation<int>);
 	auto perm_int_real = ADDR(&LSArray<int>::is_permutation<double>);
@@ -275,6 +315,14 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{flR, {Type::const_array(flT), Type::fun(flR, {Type::meta_not_temporary(flR), flT}), flR}, ADDR(fold_left)},
 	});
 
+	auto aflA = env.template_("A");
+	auto aflR = env.template_("R");
+	template_(aflA, aflR).
+	method("arrayFoldLeft", {
+		{aflR, {Type::meta_base_of(aflA, env.array), Type::fun(aflR, {Type::meta_not_temporary(aflR), Type::meta_element(aflA)}), aflR}, ADDR(fold_left)},
+	}, LEGACY_ONLY);
+
+
 	auto frT = env.template_("T");
 	auto frR = env.template_("R");
 	template_(frT, frR).
@@ -287,8 +335,8 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{env.real, {Type::array(env.real)}, ADDR((void*) LSArray<double>::ls_pop), THROWS},
 		{env.long_, {Type::array(env.long_)}, ADDR((void*) LSArray<long>::ls_pop), THROWS},
 		{env.integer, {Type::array(env.integer)}, ADDR((void*) LSArray<int>::ls_pop), THROWS},
-		{env.tmp_any, {Type::array(env.never)}, ADDR((void*) LSArray<LSValue*>::ls_pop), THROWS},
-	});
+		{env.tmp_any, {env.empty_array}, ADDR((void*) LSArray<LSValue*>::ls_pop), THROWS},
+	}, LEGACY);
 
 	method("product", {
 		{env.real, {Type::array(env.real)}, ADDR((void*) LSArray<double>::ls_product)},
@@ -296,30 +344,32 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{env.integer, {Type::array(env.integer)}, ADDR((void*) LSArray<int>::ls_product)},
 	});
 
-	auto pT = env.template_("T");
+	auto pA = env.template_("A");
 	auto pE = env.template_("E");
-	template_(pT, pE).
+	template_(pA, pE).
 	method("push", {
-		{Type::array(env.any), {env.array, env.const_any}, ADDR((void*) LSArray<LSValue*>::ls_push), LEGACY, { env.convert_mutator }},
-		{Type::array(Type::meta_add(pT, Type::meta_not_temporary(pE))), {Type::array(pT), pE}, ADDR(push), LEGACY, { env.convert_mutator }},
-	});
+		{ Type::meta_push(pA, pE), { Type::meta_base_of(pA, env.array), pE }, ADDR(array_add_eq), 0, { env.convert_mutator }, true },
+
+		// {Type::array(env.any), {env.array, env.const_any}, ADDR((void*) LSArray<LSValue*>::ls_push), LEGACY, { env.change_value_mutator }},
+		// {Type::meta_concat(pT, Type::meta_not_temporary(pE)), {Type::meta_base_of(pT, env.array), pE}, ADDR(push), LEGACY, { env.change_value_mutator }},
+	}, LEGACY);
 
 	auto paX = env.template_("X");
 	auto paY = env.template_("Y");
 	template_(paX, paY).
 	method("pushAll", {
-		{Type::array(Type::meta_add(paX, paY)), {Type::array(paX), Type::array(paY)}, ADDR(push_all), LEGACY, { env.convert_mutator }}
+		{Type::meta_add(paX, paY), {Type::meta_base_of(paX, env.array), Type::meta_base_of(paY, env.array)}, ADDR(push_all), LEGACY, { env.change_value_mutator }}
 	});
 
 	method("join", {
-		{env.string, {Type::const_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_join)},
+		{env.string, {env.const_array}, ADDR((void*) LSArray<LSValue*>::ls_join)},
 		{env.string, {Type::const_array(env.real)}, ADDR((void*) LSArray<double>::ls_join)},
 		{env.string, {Type::const_array(env.integer)}, ADDR((void*) LSArray<int>::ls_join)},
-		{env.string, {Type::const_array(env.never)}, ADDR((void*) LSArray<LSValue*>::ls_join)},
-		{env.string, {Type::const_array(env.void_), env.const_string}, ADDR((void*) LSArray<LSValue*>::ls_join_glue)},
+		{env.string, {env.const_empty_array}, ADDR((void*) LSArray<LSValue*>::ls_join)},
+		{env.string, {env.const_array, env.const_string}, ADDR((void*) LSArray<LSValue*>::ls_join_glue)},
 		{env.string, {Type::const_array(env.real), env.const_string}, ADDR((void*) LSArray<double>::ls_join_glue)},
 		{env.string, {Type::const_array(env.integer), env.const_string}, ADDR((void*) LSArray<int>::ls_join_glue)},
-		{env.string, {Type::const_array(env.never), env.const_string}, ADDR((void*) LSArray<LSValue*>::ls_join_glue)},
+		{env.string, {env.const_empty_array, env.const_string}, ADDR((void*) LSArray<LSValue*>::ls_join_glue)},
 	}, LEGACY);
 
 	method("json", {
@@ -329,10 +379,10 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 	auto T = env.template_("T");
 	template_(T).
 	method("fill", {
-		{Type::array(T), {Type::array(env.void_), T}, ADDR(fill), 0, { env.convert_mutator_array_size }},
-		{Type::array(T), {Type::array(env.void_), T, env.const_integer}, ADDR(fill), 0, { env.convert_mutator }},
-		{Type::tmp_array(T), {Type::tmp_array(env.void_), T}, ADDR(fill), 0, { env.convert_mutator_array_size }},
-		{Type::tmp_array(T), {Type::tmp_array(env.void_), T, env.const_integer}, ADDR(fill), 0, { env.convert_mutator }},
+		{Type::array(T), {env.array, T}, ADDR(fill), 0, { env.change_value_mutator }},
+		{Type::array(T), {env.array, T, env.const_integer}, ADDR(fill), 0, { env.change_value_mutator }},
+		{Type::tmp_array(T), {env.tmp_array, T}, ADDR(fill), 0, { env.change_value_mutator }},
+		{Type::tmp_array(T), {env.tmp_array, T, env.const_integer}, ADDR(fill), 0, { env.change_value_mutator }},
 	}, LEGACY);
 
 	method("insert", {
@@ -342,7 +392,7 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 	}, LEGACY);
 
 	method("random", {
-		{Type::tmp_array(env.void_), {Type::const_array(env.void_), env.const_integer}, ADDR((void*) LSArray<LSValue*>::ls_random)},
+		{env.tmp_array, {env.const_array, env.const_integer}, ADDR((void*) LSArray<LSValue*>::ls_random)},
 		{Type::tmp_array(env.real), {Type::const_array(env.real), env.const_integer}, ADDR((void*) LSArray<double>::ls_random)},
 		{Type::tmp_array(env.integer), {Type::const_array(env.integer), env.const_integer}, ADDR((void*) LSArray<int>::ls_random)},
 	});
@@ -359,16 +409,16 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{env.boolean, {Type::array(env.real), env.const_real}, ADDR(remove_element_real)},
 		{env.boolean, {Type::array(env.integer), env.const_any}, ADDR(remove_element_int)},
 		{env.boolean, {Type::array(env.integer), env.integer}, ADDR(remove_element_int)},
-		{env.boolean, {Type::array(env.never), env.const_any}, ADDR(remove_element_any)},
-		{env.boolean, {Type::array(env.never), env.integer}, ADDR(remove_element_any)},
+		{env.boolean, {env.empty_array, env.const_any}, ADDR(remove_element_any)},
+		{env.boolean, {env.empty_array, env.integer}, ADDR(remove_element_any)},
 	}, LEGACY);
 
 	auto rT = env.template_("T");
 	template_(rT).
 	method("reverse", {
-		{Type::tmp_array(env.void_), {Type::const_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_reverse)},
+		{env.tmp_array, {env.const_array}, ADDR((void*) LSArray<LSValue*>::ls_reverse)},
 		{Type::tmp_array(rT), {Type::const_array(rT)}, ADDR(reverse)},
-	});
+	}, LEGACY);
 
 	method("shuffle", {
 		{Type::tmp_array(env.any), {env.array}, ADDR((void*) LSArray<LSValue*>::ls_shuffle)},
@@ -377,7 +427,7 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 	});
 
 	method("search", {
-		{env.integer, {Type::const_array(env.void_), env.const_any, env.const_integer}, ADDR((void*) LSArray<LSValue*>::ls_search)},
+		{env.integer, {env.const_array, env.const_any, env.const_integer}, ADDR((void*) LSArray<LSValue*>::ls_search)},
 		{env.integer, {Type::const_array(env.real), env.const_real, env.const_integer}, ADDR((void*) LSArray<double>::ls_search)},
 		{env.integer, {Type::const_array(env.integer), env.const_integer, env.const_integer}, ADDR((void*) LSArray<int>::ls_search)},
 	});
@@ -389,10 +439,14 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{env.integer, {Type::const_array(env.integer)}, ADDR(size)}
 	});
 
+	method("shift", {
+		{env.any, { env.const_array }, ADDR(nullptr)},
+	}, LEGACY);
+
+	auto sumA = env.template_("A");
+	template_(sumA).
 	method("sum", {
-		{env.any, {Type::const_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_sum)},
-		{env.real, {Type::const_array(env.real)}, ADDR((void*) LSArray<double>::ls_sum)},
-		{env.integer, {Type::const_array(env.integer)}, ADDR((void*) LSArray<int>::ls_sum)},
+		{ Type::meta_element(sumA), { Type::meta_base_of(sumA, env.array) }, ADDR(sum)}
 	}, LEGACY);
 
 	auto saT = env.template_("T");
@@ -406,12 +460,14 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 		{env.integer, {env.any}, ADDR((void*) LSArray<LSValue*>::ls_size)}
 	}, LEGACY_ONLY);
 
-	auto iaT = env.template_("T");
-	template_(iaT).
+	auto iaA = env.template_("A");
+	template_(iaA).
 	method("inArray", {
-		{env.boolean, {Type::array(iaT), env.any}, ADDR((void*) LSArray<LSValue*>::ls_contains)},
-		{env.boolean, {Type::array(env.real), env.real}, ADDR((void*) LSArray<double>::ls_contains)},
-		{env.boolean, {Type::array(env.integer), env.integer}, ADDR((void*) LSArray<int>::ls_contains)}
+		// {env.boolean, {Type::array(iaT), env.any}, ADDR((void*) LSArray<LSValue*>::ls_contains)},
+		// {env.boolean, {Type::array(env.real), env.real}, ADDR((void*) LSArray<double>::ls_contains)},
+		// {env.boolean, {Type::array(env.integer), env.integer}, ADDR((void*) LSArray<int>::ls_contains)}
+
+		{ Type::meta_base_of(iaA, env.array), env.const_any, env.boolean, ADDR(in), THROWS},
 	}, LEGACY_ONLY);
 
 	/** Internal **/
@@ -502,20 +558,104 @@ ArraySTD::ArraySTD(Environment& env) : Module(env, "Array") {
 	}, PRIVATE | LEGACY);
 
 	method("reverse_fun", {
-		{Type::tmp_array(env.void_), {Type::const_array(env.void_)}, ADDR((void*) LSArray<LSValue*>::ls_reverse)},
+		{env.tmp_array, {env.const_array}, ADDR((void*) LSArray<LSValue*>::ls_reverse)},
 		{Type::tmp_array(env.real), {Type::const_array(env.real)}, ADDR((void*) LSArray<double>::ls_reverse)},
 		{Type::tmp_array(env.long_), {Type::const_array(env.long_)}, ADDR((void*) LSArray<long>::ls_reverse)},
 		{Type::tmp_array(env.integer), {Type::const_array(env.integer)}, ADDR((void*) LSArray<int>::ls_reverse)},
+	}, PRIVATE | LEGACY);
+
+	method("clear_fun", {
+		{ env.void_, { env.const_array }, ADDR((void*) LSArray<int>::ls_clear)}
 	}, PRIVATE | LEGACY);
 }
 
 #if COMPILER
 
 Compiler::value ArraySTD::new_(Compiler& c, std::vector<Compiler::value> args, int) {
-	return c.new_array(c.env.never, {});
+	return c.new_fixed_array(std::vector<Compiler::value> {});
+}
+
+Compiler::value ArraySTD::eq(Compiler& c, std::vector<Compiler::value> args, int) {
+	auto array = args[0];
+	auto value = args[1];
+
+	if (array.t->is_fixed_array() and value.t->is_fixed_array()) {
+
+		if (array.t->size() != value.t->size()) {
+			c.insn_delete_temporary(args[0]);
+			c.insn_delete_temporary(args[1]);
+			return c.new_bool(false);
+		}
+
+		auto r = c.create_and_call_std_method("fixed_eq", args, c.env.boolean, fixed_eq);
+		c.insn_delete_temporary(args[0]);
+		c.insn_delete_temporary(args[1]);
+		return r;
+	}
+
+	auto bp = c.insn_to_any(value);
+	auto r = c.insn_call(c.env.boolean, { array, bp }, "Value.operator==");
+	c.insn_delete_temporary(args[0]);
+	c.insn_delete_temporary(args[1]);
+	return r;
+}
+
+void ArraySTD::fixed_eq(Compiler& c, std::vector<Compiler::value> args) {
+	const auto& array1 = args[0];
+	const auto& array2 = args[1];
+
+	for (size_t i = 0; i < array1.t->size(); ++i) {
+		auto element1 = c.insn_fixed_array_at(array1, i);
+		auto element2 = c.insn_fixed_array_at(array2, i);
+		c.insn_if_not_return(c.insn_eq(element1, element2), [&]() {
+			c.insn_return(c.new_bool(false));
+		});
+	}
+	c.insn_return(c.new_bool(true));
+}
+
+Compiler::value ArraySTD::lt(Compiler& c, std::vector<Compiler::value> args, int) {
+	auto array = args[0];
+	auto value = args[1];
+
+	if (array.t->is_fixed_array() and value.t->is_fixed_array()) {
+
+		auto r = c.create_and_call_std_method("fixed_lt", args, c.env.boolean, fixed_lt);
+		c.insn_delete_temporary(args[0]);
+		c.insn_delete_temporary(args[1]);
+		return r;
+	}
+
+	auto bp = c.insn_to_any(value);
+	auto r = c.insn_call(c.env.boolean, { array, bp }, "Value.operator==");
+	c.insn_delete_temporary(args[0]);
+	c.insn_delete_temporary(args[1]);
+	return r;
+}
+
+void ArraySTD::fixed_lt(Compiler& c, std::vector<Compiler::value> args) {
+	const auto& array1 = args[0];
+	const auto& array2 = args[1];
+
+	for (size_t i = 0; i < array1.t->size(); ++i) {
+		if (i == array2.t->size()) {
+			c.insn_return(c.new_bool(false));
+			return;
+		}
+		auto element1 = c.insn_fixed_array_at(array1, i);
+		auto element2 = c.insn_fixed_array_at(array2, i);
+		c.insn_if_return(c.insn_lt(element1, element2), [&]() {
+			c.insn_return(c.new_bool(true));
+		});
+		c.insn_if_return(c.insn_lt(element2, element1), [&]() {
+			c.insn_return(c.new_bool(false));
+		});
+	}
+	c.insn_return(c.new_bool(true));
 }
 
 Compiler::value ArraySTD::in(Compiler& c, std::vector<Compiler::value> args, int) {
+	auto array = args[0];
 	const auto& type = args[0].t->element()->fold();
 	auto f = [&]() {
 		if (type->is_integer()) return "Array.in.2";
@@ -523,6 +663,14 @@ Compiler::value ArraySTD::in(Compiler& c, std::vector<Compiler::value> args, int
 		return "Array.in";
 	}();
 	if (args[1].t->castable(type)) {
+
+		if (array.t->is_fixed_array_or_ptr()) {
+			auto r = c.create_and_call_std_method("fixed_in", args, c.env.boolean, fixed_in);
+			c.insn_delete_temporary(args[0]);
+			c.insn_delete_temporary(args[1]);
+			return r;
+		}
+
 		auto v = c.insn_convert(args[1], type);
 		auto r = c.insn_call(c.env.boolean, {args[0], v}, f);
 		if (args[1].t->is_polymorphic() and type->is_primitive()) {
@@ -536,22 +684,89 @@ Compiler::value ArraySTD::in(Compiler& c, std::vector<Compiler::value> args, int
 	}
 }
 
-Compiler::value ArraySTD::op_add(Compiler& c, std::vector<Compiler::value> args, int) {
-	if (args[0].t->element() == c.env.never) {
-		c.insn_delete_temporary(args[0]);
-		return c.new_array(args[1].t->add_temporary(), { args[1] });
+/**
+ * Fixed array operator in function
+ *
+ * ```
+ * function fixed_in(array: [int, string, int], element: int) {
+ *    if (array[0] == element) return true
+ *    if (array[2] == element) return true
+ *    return false
+ * }
+ * function fixed_in(array: [int, string, int], element: string) {
+ *    if (array[1] == element) return true
+ *    return false
+ * }
+ * ```
+ */
+void ArraySTD::fixed_in(Compiler& c, std::vector<Compiler::value> args) {
+	const auto& array = args[0];
+	const auto& needle = args[1];
+	const auto needle_type = needle.t->not_temporary();
+
+	for (size_t i = 0; i < array.t->size(); ++i) {
+		if (array.t->element(i)->castable(needle_type)) {
+			auto element = c.insn_fixed_array_at(array, i);
+			c.insn_if_return(c.insn_eq(element, needle), [&]() {
+				c.insn_return(c.new_bool(true));
+			});
+		}
 	}
+	c.insn_return(c.new_bool(false));
+}
+
+Compiler::value ArraySTD::op_add(Compiler& c, std::vector<Compiler::value> args, int) {
+	// std::cout << "ArraySTD op_add " << args << std::endl;
+	if (args[0].t->is_fixed_array_or_ptr()) {
+		auto values = c.insn_get_fixed_array_values(args[0]);
+		if (args[1].t->is_fixed_array_or_ptr()) {
+			auto values2 = c.insn_get_fixed_array_values(args[1]);
+			values.insert(values.end(), values2.begin(), values2.end());
+		} else {
+			values.push_back(args[1]);
+		}
+		return c.new_fixed_array(values);
+	}
+	// if (args[0].t->element() == c.env.never) {
+	// 	c.insn_delete_temporary(args[0]);
+	// 	return c.new_array(args[1].t->add_temporary(), { args[1] });
+	// }
 	return c.insn_call(Type::tmp_array(args[0].t->element()), {args[0], c.insn_to_any(args[1])}, "Value.operator+");
 }
 
 Compiler::value ArraySTD::array_add_eq(Compiler& c, std::vector<Compiler::value> args, int flags) {
-	if (args[1].t->is_polymorphic()) {
+
+	// std::cout << "ArraySTD add_eq " << args << std::endl;
+
+	if (args[0].t->is_fixed_array_or_ptr()) {
+		// auto values = c.insn_get_fixed_array_values(args[0]);
+		if (args[1].t->is_fixed_array_or_ptr()) {
+			auto values2 = c.insn_get_fixed_array_values(args[1]);
+			// values.insert(values.end(), values2.begin(), values2.end());
+			auto start = args[0].t->size() - values2.size();
+			for (size_t i = 0; i < values2.size(); ++i) {
+				c.insn_store(c.insn_fixed_array_at_addr(args[0], start + i), values2[i]);
+			}
+		} else {
+			auto end = args[0].t->size() - 1;
+			// std::cout << "ArraySTD += set element " << end << " " << args[1].t << std::endl;
+			c.comment("Array += increment refs of element " + args[1].t->getName());
+			c.insn_inc_refs(args[1]);
+			c.insn_store(c.insn_fixed_array_at_addr(args[0], end), args[1]);
+		}
+		return args[0];
+	}
+
+	if (args[1].t->is_set()) {
 		args[1] = c.insn_to_any(args[1]);
 		return c.insn_call(c.env.any, args, "Value.operator+=");
 	}
-	args[0] = c.insn_load(args[0]);
+	if (args[0].t->pointed()->is_array()) {
+		args[0] = c.insn_load(args[0]);
+	}
 	auto fun = [&]() {
 		const auto& type = args[0].t->element()->fold();
+		// std::cout << "push array type = " << type << std::endl;
 		if (type->is_bool()) return "Array.vpush";
 		if (type->is_integer()) return "Array.vpush.1";
 		if (type->is_long()) return "Array.vpush.2";
@@ -567,7 +782,54 @@ Compiler::value ArraySTD::array_add_eq(Compiler& c, std::vector<Compiler::value>
 	else return args[0];
 }
 
+Compiler::value ArraySTD::average(Compiler& c, std::vector<Compiler::value> args, int) {
+	const auto array = args[0];
+
+	if (array.t->is_fixed_array_or_ptr()) {
+
+		if (array.t->size() == 0) {
+			c.insn_delete_temporary(array);
+			return c.new_real(0);
+		}
+		auto r = c.create_and_call_std_method("fixed_average", args, c.env.real, fixed_average, true);
+		c.insn_delete_temporary(array);
+		return r;
+	} else {
+
+	}
+}
+
+void ArraySTD::fixed_average(Compiler& c, std::vector<Compiler::value> args) {
+	const auto array = args[0];
+	auto sum = c.create_and_call_std_method("fixed_sum", args, array.t->element(), fixed_sum);
+	auto r = c.insn_div(sum, c.new_real(array.t->size()), true);
+	c.insn_return(r);
+}
+
+void ArraySTD::vector_average(Compiler& c, std::vector<Compiler::value> args) {
+	const auto array = args[0];
+
+	const auto average = c.create_entry("average", c.env.real);
+	c.insn_store(average, c.new_integer(0));
+
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
+	c.insn_foreach(array, c.env.void_, &v, nullptr, [&](Compiler::value value, Compiler::value key) -> Compiler::value {
+		c.insn_store(average, c.insn_add(c.insn_load(average), value));
+		return { c.env };
+	});
+
+	auto r = c.insn_div(c.insn_load(average), c.insn_array_size(array), true);
+	c.insn_return(r);
+}
+
 Compiler::value ArraySTD::size(Compiler& c, std::vector<Compiler::value> args, int) {
+
+	if (args[0].t->is_fixed_array_or_ptr()) {
+		auto r = c.new_integer(args[0].t->size());
+		c.insn_delete_temporary(args[0]);
+		return r;
+	}
+
 	auto res = c.insn_array_size(args[0]);
 	c.insn_delete_temporary(args[0]);
 	return res;
@@ -693,13 +955,29 @@ Compiler::value ArraySTD::partition(Compiler& c, std::vector<Compiler::value> ar
 Compiler::value ArraySTD::map(Compiler& c, std::vector<Compiler::value> args, int flags) {
 	auto array = args[0];
 	auto function = args[1];
-	auto return_type = function.t->return_type()->is_void() ? c.env.null : function.t->return_type();
-	auto result = flags & NO_RETURN ? Compiler::value { c.env } : c.new_array(return_type, {});
-	auto v = Variable::new_temporary("v", array.t->element());
+
+	if (array.t->is_fixed_array_or_ptr()) {
+		// std::cout << "STD::map " << array.t << " " << function.t << std::endl;
+		// std::cout << array.t->op_map(function.t) << std::endl;
+		return c.create_and_call_std_method("map", args, array.t->op_map(function.t), fixed_map, false);
+	}
+
+	auto result_type = array.t->op_map(function.t);
+
+	std::cout << array.t << " result type " << result_type << std::endl;
+
+	auto result = flags & NO_RETURN ? Compiler::value { c.env } : c.new_array(result_type->element(), {});
+	auto v = Variable::new_temporary("v", array.t->element(), *c.fun->parent);
+	// std::cout << "map " << array.t->element() << " " << result_type << " " << result.t << std::endl;
+
 	c.insn_foreach(array, c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {
 		auto x = c.clone(v);
 		c.insn_inc_refs(x);
-		auto r = c.insn_call(function, {x});
+
+		const auto version = ((Function*) args[1].t->function())->versions.at({ array.t->element() }).get();
+		version->compile(c);
+
+		auto r = c.insn_call(version->fun, {x});
 		if (flags & NO_RETURN) {
 			if (not r.t->is_void()) c.insn_delete_temporary(r);
 		} else {
@@ -710,6 +988,24 @@ Compiler::value ArraySTD::map(Compiler& c, std::vector<Compiler::value> args, in
 	});
 	return flags & NO_RETURN ? Compiler::value { c.env } : result;
 }
+
+void ArraySTD::fixed_map(Compiler& c, std::vector<Compiler::value> args) {
+
+	const auto array = args[0];
+	std::vector<Compiler::value> elements;
+
+	for (size_t i = 0; i < array.t->size(); ++i) {
+		// std::cout << array.t->element(i) << std::endl;
+		auto element = c.insn_fixed_array_at(array, i);
+		const auto version = ((Function*) args[1].t->function())->versions.at({ element.t }).get();
+		version->compile(c);
+		const auto fun = version->fun;
+		// std::cout << "fun " << fun.t << std::endl;
+		elements.push_back(c.insn_call(fun, { element }));
+	}
+	c.insn_return(c.new_fixed_array(elements));
+}
+
 
 Compiler::value ArraySTD::min_fun(Compiler& c, std::vector<Compiler::value> args, int flags) {
 	auto array = args[0];
@@ -808,7 +1104,7 @@ Compiler::value ArraySTD::layer(Compiler& c, std::vector<Compiler::value> args, 
 	auto array2 = args[1];
 	auto filter = args[2];
 	c.insn_inc_refs(filter);
-	auto result = c.new_array(args[0].t->element()->operator + (args[1].t->element()), {});
+	auto result = c.new_array(args[0].t->element()->operator | (args[1].t->element()), {});
 	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
 	v.create_entry(c);
 	auto i = Variable::new_temporary("i", args[0].t->key(), *c.fun->parent);
@@ -847,18 +1143,61 @@ Compiler::value ArraySTD::push(Compiler& c, std::vector<Compiler::value> args, i
 }
 
 Compiler::value ArraySTD::filter(Compiler& c, std::vector<Compiler::value> args, int) {
-	auto function = args[1];
-	auto result = c.new_array(args[0].t->element(), {});
-	auto v = Variable::new_temporary("v", args[0].t->element());
-	v.create_entry(c);
-	c.insn_foreach(args[0], c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {
-		auto r = c.insn_call(function, {v});
-		c.insn_if(r, [&]() {
-			c.insn_push_array(result, c.clone(v));
+
+	auto array = args[0];
+
+	if (array.t->is_fixed_array_or_ptr()) {
+
+		if (array.t->size() == 0) {
+			return array;
+		}
+		auto r = c.create_and_call_std_method("fixed_filter", args, Type::array(array.t->element()), fixed_filter, true);
+		c.insn_delete_temporary(array);
+		return r;
+
+	} else {
+
+		auto function = args[1];
+		auto result = c.new_array(args[0].t->element(), {});
+		auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
+		v.create_entry(c);
+		c.insn_foreach(args[0], c.env.void_, &v, nullptr, [&](Compiler::value v, Compiler::value k) -> Compiler::value {
+			auto r = c.insn_call(function, {v});
+			c.insn_if(r, [&]() {
+				c.insn_push_array(result, c.clone(v));
+			});
+			return { c.env };
 		});
-		return { c.env };
-	});
-	return result;
+		return result;
+	}
+}
+
+void ArraySTD::fixed_filter(Compiler& c, std::vector<Compiler::value> args) {
+
+	const auto array = args[0];
+	auto result = c.new_array(array.t->element(), {});
+
+	auto function = (Function*) args[1].t->function();
+	// std::cout << (void*) function << " " << function->versions.size() << std::endl;
+	// for (const auto& version : function->versions) {
+	// 	std::cout << "version : " << version.first << std::endl;
+	// }
+
+	for (size_t i = 0; i < array.t->size(); ++i) {
+		// std::cout << array.t->element(i) << std::endl;
+
+		auto element = c.insn_fixed_array_at(array, i);
+
+		const auto version = function->versions.at({ element.t }).get();
+		version->compile(c);
+		auto r = c.insn_call(version->fun, { element });
+
+		c.insn_if(r, [&]() {
+			auto e = c.insn_move(c.insn_convert(element, array.t->element()));
+			c.insn_push_array(result, e);
+		});
+	}
+	c.insn_return(result);
 }
 
 Compiler::value ArraySTD::push_all(Compiler& c, std::vector<Compiler::value> args, int) {
@@ -885,7 +1224,7 @@ Compiler::value ArraySTD::push_all(Compiler& c, std::vector<Compiler::value> arg
 		if (array2.t->element()->is_real()) return "Array.push_all_fun.1";
 		return "Array.push_all_fun";
 	}();
-	return c.insn_call(Type::array(array1.t->element()->operator + (array2.t->element())), args, fun);
+	return c.insn_call(Type::array(array1.t->element()->operator | (array2.t->element())), args, fun);
 }
 
 int ArraySTD::convert_key(LSValue* key_pointer) {
@@ -897,6 +1236,53 @@ int ArraySTD::convert_key(LSValue* key_pointer) {
 	int key_int = n->value;
 	LSValue::delete_temporary(key_pointer);
 	return key_int;
+}
+
+Compiler::value ArraySTD::clear(Compiler& c, std::vector<Compiler::value> args, int) {
+	return args[0];
+}
+
+Compiler::value ArraySTD::sum(Compiler& c, std::vector<Compiler::value> args, int) {
+	const auto array = args[0];
+
+	if (array.t->is_fixed_array_or_ptr()) {
+
+		if (array.t->size() == 0) {
+			c.insn_delete_temporary(array);
+			return c.new_real(0);
+		}
+		auto r = c.create_and_call_std_method("fixed_sum", args, array.t->element(), fixed_sum, true);
+		c.insn_delete_temporary(array);
+		return r;
+	} else {
+
+	}
+}
+
+void ArraySTD::fixed_sum(Compiler& c, std::vector<Compiler::value> args) {
+
+	const auto array = args[0];
+	Compiler::value sum { c.env };
+
+	for (size_t i = 0; i < array.t->size(); ++i) {
+		// std::cout << array.t->element(i) << std::endl;
+		auto element = c.insn_fixed_array_at(array, i);
+		sum = sum.t->is_void() ? element : c.insn_add(sum, element);
+	}
+	c.insn_return(sum);
+}
+
+void ArraySTD::vector_sum(Compiler& c, std::vector<Compiler::value> args) {
+
+	const auto sum = c.create_entry("sum", c.env.real);
+	c.insn_store(sum, c.new_integer(0));
+
+	auto v = Variable::new_temporary("v", args[0].t->element(), *c.fun->parent);
+	c.insn_foreach(args[0], c.env.void_, &v, nullptr, [&](Compiler::value value, Compiler::value key) -> Compiler::value {
+		c.insn_store(sum, c.insn_add(c.insn_load(sum), value));
+		return { c.env };
+	});
+	c.insn_return(c.insn_load(sum));
 }
 
 #endif

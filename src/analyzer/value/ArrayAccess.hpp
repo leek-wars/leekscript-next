@@ -20,6 +20,8 @@ public:
 	const Type* map_key_type;
 	bool should_delete_array = false;
 	std::unique_ptr<Callable> callable;
+	int fixed_index = -1;
+	int fixed_index2 = -1;
 	#if COMPILER
 	Compiler::value compiled_array;
 	#endif

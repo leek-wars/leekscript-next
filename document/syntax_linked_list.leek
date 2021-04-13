@@ -1,0 +1,30 @@
+
+class Node<T> {
+	Node?& previous = null
+	// ou
+	Node* previous = null
+
+	Node?& next = null
+	T element
+}
+
+class LinkedList<T> {
+	Node<T>?& head = null
+	Node<T>?& tail = null
+	int size = 0
+
+	add(T element) {
+		if size == 0 {
+			const node = new Node(null, null, element)
+			head = node
+			tail = node
+		} else {
+			const node = new Node(tail, null, element)
+			tail.next = node
+			tail = node
+		}
+	}
+}
+
+let list = new LinkedList()
+list.

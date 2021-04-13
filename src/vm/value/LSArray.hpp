@@ -32,7 +32,7 @@ public:
 	void push_inc(T value); // increment (if not native) and push
 	static void std_push_inc(LSArray<T>* array, T value);
 	static int int_size(LSArray<T>* array);
-	static LSArray<LSValue*>* ls_clear(LSArray<T>* array);
+	static void ls_clear(LSArray<T>* array);
 	static T ls_remove(LSArray<T>* array, int index);
 	static bool ls_remove_element(LSArray<T>* array, T element);
 	static bool ls_empty(LSArray<T>* array);

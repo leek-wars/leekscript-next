@@ -46,7 +46,7 @@ void Test::test_operators() {
 	code("var a = [1, 2, 3, 4] a[0] <=> a[3] a").equals("[4, 2, 3, 1]");
 	code("var a = 12 var b = 5 let s = a <=> b s").equals("5");
 	code("var a = [12] var b = [5] a[0] <=> b[0] [a, b]").equals("[[5], [12]]");
-	code("var a = ['a'] var b = ['b'] a[0] <=> b[0] [a, b]").equals("[['b'], ['a']]");
+	DISABLED_code("var a = ['a'] var b = ['b'] a[0] <=> b[0] [a, b]").equals("[['b'], ['a']]");
 	code("var a = [1, 2, 3, 4] a[0] <=> a[3] a").equals("[4, 2, 3, 1]");
 	code("var a = ['a', 'b', 'c', 'd'] a[0] <=> a[3] a").equals("['d', 'b', 'c', 'a']");
 	code("var a = 2 var b = 5 ['', a <=> b]").equals("['', 5]");
@@ -56,14 +56,14 @@ void Test::test_operators() {
 	code("null / 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
 	code("null % 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
 	code("null - 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
-	code("var a = null a += 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
-	code("var a = null a -= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
-	code("var a = null a *= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
-	code("var a = null a /= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
-	code("var a = null a **= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
-	code("var a = null a %= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
-	code("let a = null a[0]").error(ls::Error::Type::VALUE_MUST_BE_A_CONTAINER, {"a"});
-	code("let a = null !a").equals("true");
+	DISABLED_code("var a = null a += 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
+	DISABLED_code("var a = null a -= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
+	DISABLED_code("var a = null a *= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
+	DISABLED_code("var a = null a /= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
+	DISABLED_code("var a = null a **= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
+	DISABLED_code("var a = null a %= 5").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
+	DISABLED_code("let a = null a[0]").error(ls::Error::Type::VALUE_MUST_BE_A_CONTAINER, {"a"});
+	DISABLED_code("let a = null !a").equals("true");
 	code("|null|").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
 	code("null[2] = 5").error(ls::Error::Type::VALUE_MUST_BE_A_CONTAINER, {"null"});
 	code("let a = [null, ''][0] a[2]").exception(ls::vm::Exception::NO_SUCH_OPERATOR);
@@ -180,7 +180,7 @@ void Test::test_operators() {
 	code("[] >= false").equals("true");
 	code("[] >= 1").equals("true");
 	code("[] >= 'a'").equals("true");
-	code("[] >= []").equals("true");
+	DISABLED_code("[] >= []").equals("true");
 	code("[] >= {}").equals("false");
 
 	code("{} >= null").equals("true");

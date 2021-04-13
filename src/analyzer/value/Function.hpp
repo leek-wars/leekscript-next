@@ -45,6 +45,7 @@ public:
 
 	Function(Environment& env, File& file);
 	Function(Environment& env, VirtualToken token, File& file);
+	Function& operator = (const Function&);
 
 	void addArgument(VirtualToken token, Value* defaultValue, bool reference);
 

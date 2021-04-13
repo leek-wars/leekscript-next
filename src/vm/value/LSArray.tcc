@@ -97,18 +97,15 @@ int LSArray<T>::int_size(LSArray<T>* array) {
 }
 
 template <>
-inline LSArray<LSValue*>* LSArray<LSValue*>::ls_clear(LSArray<LSValue*>* array) {
+inline void LSArray<LSValue*>::ls_clear(LSArray<LSValue*>* array) {
 	for (auto v : *array) {
 		LSValue::delete_ref(v);
 	}
 	array->clear();
-	return new LSArray<LSValue*>();
 }
 template <class T>
-inline LSArray<LSValue*>* LSArray<T>::ls_clear(LSArray<T>* array) {
+inline void LSArray<T>::ls_clear(LSArray<T>* array) {
 	array->clear();
-	LSValue::delete_temporary(array);
-	return new LSArray<LSValue*>();
 }
 
 template <>

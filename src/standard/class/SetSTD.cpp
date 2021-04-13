@@ -48,7 +48,7 @@ SetSTD::SetSTD(Environment& env) : Module(env, "Set") {
 	auto pqE = env.template_("E");
 	template_(pqT, pqE).
 	operator_("+=", {
-		{Type::set(pqT), pqE, Type::set(Type::meta_mul(pqT, pqE)), ADDR(set_add_eq), 0, { env.convert_mutator }, true},
+		{Type::set(pqT), pqE, Type::set(Type::meta_mul(pqT, pqE)), ADDR(set_add_eq), 0, { env.change_value_mutator }, true},
 	});
 
 	/*

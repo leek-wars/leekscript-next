@@ -15,6 +15,8 @@ void Template_type::reset() const {
 	((Template_type*) this)->_implementation = _implementation->env.void_;
 }
 void Template_type::implement(const Type* implementation) const {
+	// Check that the implementation is not the type itself
+	// assert(implementation != this);
 	((Template_type*) this)->_implementation = implementation;
 }
 Json Template_type::json() const {
@@ -28,7 +30,8 @@ bool Template_type::operator == (const Type* type) const {
 	return _implementation->operator == (type);
 }
 int Template_type::distance(const Type* type) const {
-	if (_implementation == _implementation->env.void_) {
+	if (type == this) return 0;
+	if (_implementation->is_void()) {
 		if (dynamic_cast<const Any_type*>(type->folded)) { return 0; }
 		return 100000 + type->distance(this);
 	}

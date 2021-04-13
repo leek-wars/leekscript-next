@@ -1,0 +1,22 @@
+const array = []
+const Array<Object> array = []
+const Array<Object@> array2 = []
+
+let o = {a: 12, b: 5} // Object
+
+array.add(o) // copy
+array2.add(o) // valid, take reference
+
+const ref1 = array[0] // copy
+const ref2 = @array[0] // take reference of an element in the array, ref2 is Object@, no copy
+const ref3 = array2[0] // element is already a reference, ref3 is a Object@ directly, no copy
+const ref4 = @array2[0] // reference of reference, warning but same as ref3, no copy
+
+let array3 = [ ref2 ] // Array<Object@> (array3 is a dependency of array)
+
+array.push('a') // array is modified, all references to elements are broken
+// ref2 is broken
+// array3 is broken
+
+print(ref2) // error
+return array3 // error

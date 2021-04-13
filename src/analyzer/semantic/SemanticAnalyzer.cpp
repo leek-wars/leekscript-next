@@ -145,8 +145,11 @@ Variable* SemanticAnalyzer::get_var(const std::string& v) {
 			// std::cout << "start block " << start_block->sections.front()->id << std::endl;
 			if (sections[f].size()) {
 				auto section = sections[f].back();
+				std::unordered_set<Section*> visited;
+				visited.insert(section);
+				// std::cout << "start section " << section->color << section->id << END_COLOR << std::endl;
 				while (section != nullptr) {
-					// std::cout << "search " << v << " in section " << section->color << section->id << END_COLOR << std::endl;
+					// std::cout << "search " << v << " in section " << section->color << section->id << END_COLOR << " start section " << sections[f].back()->color << sections[f].back()->id << END_COLOR << std::endl;
 					auto i = section->variables.find(v);
 					if (i != section->variables.end()) {
 						auto root = i->second->root ? i->second->root : i->second;
@@ -168,6 +171,12 @@ Variable* SemanticAnalyzer::get_var(const std::string& v) {
 						// std::cout << "not found in " << section->color << section->id << END_COLOR << std::endl;
 						section = section->predecessors.size() ? section->predecessors[0] : nullptr;
 					}
+					// if (visited.find(section) != visited.end()) {
+					// 	// On est revenus au début, on termine
+					// 	section = nullptr;
+					// 	start_block = blocks[f][--b];
+					// }
+					// visited.insert(section);
 				}
 			}
 			// std::cout << "NOT FOUND " << std::endl;
@@ -256,13 +265,17 @@ Variable* SemanticAnalyzer::add_global_var(VirtualToken v, const Type* type, Val
 	}
 	auto& section = blocks.begin()->front()->sections.front();
 	auto& var = section->variable_list.emplace_back(new Variable(v->content, v, VarScope::LOCAL, type, 0, value, current_function(), current_block(), current_section(), nullptr, {}, true));
+	// std::cout << "add global var " << v.index << std::endl;
 	section->variables.emplace(v->content, var.get());
 	return var.get();
 }
 
 Variable* SemanticAnalyzer::update_var(Variable* variable, bool add_mutation) {
 	if (not variable) return nullptr;
-	if (variable->loop_variable) return variable;
+	if (variable->loop_variable) {
+		variable->parent = variable;
+		return variable;
+	}
 	// std::cout << "update_var " << variable << " " << (int) variable->scope << std::endl;
 	Variable* new_variable;
 	if (current_block() == variable->block) {

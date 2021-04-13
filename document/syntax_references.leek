@@ -1,0 +1,18 @@
+let x = 10 // int
+let y = @x // int@
+y += 5
+print(x) // 15
+
+var array = [ x, y ] // x is copied, y is ref, type [int, int@] array depends on y
+
+return array // y will be destroyed, array will be the only owner, so the array can be converted from [int, int@] to [int, int]
+
+var array2 = [ x, +y ] // +y converts int@ to int, and copy the value
+
+var array3 = [ x, y, y ] // array3 depends on y
+return array3 // y is destroyed, but there are two references created from it, we can allocate it on the heap and keep the two references.
+			  // int* heap_y = new int { y };
+
+return => { // the returned functions depends on y (capture), it's the only reference so y can be captured by value in the function
+	print(y)
+}

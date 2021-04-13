@@ -2,6 +2,7 @@
 #include "../type/Void_type.hpp"
 #include "../type/Any_type.hpp"
 #include "../type/Array_type.hpp"
+#include "../type/Fixed_array_type.hpp"
 #include "../type/Set_type.hpp"
 #include "../type/Function_type.hpp"
 #include "../type/Function_object_type.hpp"
@@ -79,11 +80,16 @@ Environment::Environment(bool legacy) :
     tmp_interval(interval->add_temporary()),
     object(new Object_type { *this }),
     tmp_object(object->add_temporary()),
-	array(Type::array(void_)),
+	array(Type::array(any)),
+	tmp_array(array->add_temporary()),
+	const_array(array->add_constant()),
+	empty_array(Type::fixed_array(*this, {})),
+	tmp_empty_array(empty_array->add_temporary()),
+	const_empty_array(empty_array->add_constant()),
 	set(Type::set(void_)),
 	change_value_mutator(new ChangeValueMutator()),
-	convert_mutator(new ConvertMutator()),
-	convert_mutator_array_size(new ConvertMutator(true)),
+	convert_mutator(new ChangeValueMutator(true)),
+	convert_mutator_array_size(new ChangeValueMutator(true, true)),
 	std(*this, legacy)
 {}
 

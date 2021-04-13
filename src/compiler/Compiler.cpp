@@ -241,6 +241,40 @@ Compiler::value Compiler::new_array(const Type* element_type, std::vector<Compil
 	return array;
 }
 
+Compiler::value Compiler::new_fixed_array(const Type* type) {
+	return { llvm::UndefValue::get(type->llvm(*this)), type };
+}
+
+Compiler::value Compiler::new_fixed_array(std::vector<Compiler::value> elements) {
+
+	std::vector<const Type*> types;
+	for (const auto& element : elements) {
+		auto t = element.t->is_fixed_array_ptr() ? element.t->pointed() : element.t;
+		// std::cout << "t = " << t << std::endl;
+		types.push_back(t);
+	}
+
+	auto array = new_fixed_array(Type::tmp_fixed_array(env, types));
+
+	for (size_t index = 0; index < elements.size(); ++index) {
+		auto v = insn_move_inc(elements[index]);
+		if (v.t->is_fixed_array_ptr()) {
+			v = insn_load(v);
+		}
+		array = insn_fixed_array_insert(array, v, index);
+	}
+
+	// size of the array + 1 operations
+	inc_ops(elements.size() + 1);
+
+	// std::cout << "fixed array " << array.t << std::endl;
+
+	return array;
+}
+
+Compiler::value Compiler::insn_fixed_array_insert(Compiler::value array, Compiler::value element, unsigned int index) {
+	return { builder.CreateInsertValue(array.v, element.v, index), array.t };
+}
 
 Compiler::value Compiler::create_entry(const Type* type) {
 	// llvm::IRBuilder<> builder(&F->getEntryBlock(), F->getEntryBlock().begin());
@@ -322,7 +356,7 @@ Compiler::value Compiler::to_long(Compiler::value v) {
 	return insn_invoke(env.long_, {v}, "Value.long");
 }
 
-Compiler::value Compiler::insn_convert(Compiler::value v, const Type* t, bool delete_previous) {
+Compiler::value Compiler::insn_convert(Compiler::value v, const Type* t, bool delete_previous, bool soft_convert) {
 	// std::cout << "convert " << v.t << " " << t->is_primitive() << " to " << t << " " << t->is_polymorphic() << std::endl;
 	// assert(v.t->llvm(*this) == v.v->getType());
 	if (!v.v) { return v; }
@@ -341,6 +375,71 @@ Compiler::value Compiler::insn_convert(Compiler::value v, const Type* t, bool de
 		auto f = insn_convert(v, env.i8_ptr);
 		return insn_call(Type::fun_object(v.t->return_type(), v.t->arguments()), { get_vm(), f }, "Function.new");
 	}
+
+	if (v.t->is_fixed_array_or_ptr()) {
+		auto vt = v.t->is_fixed_array_ptr() ? v.t->pointed() : v.t;
+		auto convert_type = t->is_fixed_array_ptr() ? t->pointed()->fold() : t->fold();
+
+		comment("Convert fixed array " + v.t->getName() + " to " + convert_type->getName());
+
+		// std::cout << "convert fixed array " << v.t << " to " << convert_type << " " << std::boolalpha << soft_convert << std::endl;
+		// Convert to classic array or any
+		if ((convert_type->is_array() and not convert_type->is_fixed_array()) or convert_type->is_any()) {
+			auto convert_type = t->is_array() ? t->element() : env.any;
+			std::vector<Compiler::value> values;
+			for (size_t i = 0; i < vt->size(); ++i) {
+				auto e = insn_fixed_array_at(v, i);
+				insn_dec_refs(e);
+				values.push_back(insn_convert(e, convert_type));
+			}
+			// std::cout << "convert to array " << convert_type << " " << values.size() << " values" << std::endl;
+			auto array = new_array(convert_type, values);
+
+			if (not v.t->temporary) {
+				array.t = array.t->not_temporary();
+				insn_inc_refs(array);
+			}
+			// std::cout << "converted type " << array.t << " " << t << std::endl;
+			return { builder.CreatePointerCast(array.v, t->llvm(*this)), t };
+		}
+
+		// Convert a fixed array to another
+		if (convert_type->is_fixed_array() and (not v.t->is_fixed_array_ptr() or v.t->pointed() != t)) {
+
+			auto new_array = new_fixed_array(convert_type);
+
+			// Common part => convert
+			auto common = std::min(v.t->size(), convert_type->size());
+			for (size_t i = 0; i < common; ++i) {
+				auto old_type = v.t->element(i);
+				auto new_type = convert_type->element(i);
+				bool is_fixed_array = old_type->is_fixed_array() and new_type->is_fixed_array();
+				if (old_type == new_type) {
+					new_array = insn_fixed_array_insert(new_array, insn_fixed_array_at(v, i), i);
+				} else if (not soft_convert or is_fixed_array) {
+					// std::cout << "convert to " << convert_type->element(i) << std::endl;
+					auto converted = insn_convert(insn_fixed_array_at(v, i), convert_type->element(i), false, soft_convert and is_fixed_array);
+
+					new_array = insn_fixed_array_insert(new_array, converted, i);
+				} else {
+					insn_delete(insn_fixed_array_at(v, i));
+				}
+			}
+
+			// Remaining part => delete
+			for (size_t i = common; i < v.t->size(); ++i) {
+				insn_delete(insn_fixed_array_at(v, i));
+			}
+
+			// Additional part => fill with zeros
+			for (size_t i = v.t->size(); i < convert_type->size(); ++i) {
+				// insn_store(insn_fixed_array_at(new_array, i), new_integer(0));
+			}
+			return new_array;
+		}
+		return v;
+	}
+
 	if (v.t->is_array() and t->is_array()) {
 		// std::cout << "Convert " << v.t << " to " << t << " delete_previous " << delete_previous << std::endl;
 		if (t->element()->is_polymorphic()) {
@@ -731,16 +830,18 @@ Compiler::value Compiler::insn_mul(Compiler::value a, Compiler::value b) {
 	return {builder.CreateMul(to_int(a).v, to_int(b).v), env.integer};
 }
 
-Compiler::value Compiler::insn_div(Compiler::value a, Compiler::value b) {
+Compiler::value Compiler::insn_div(Compiler::value a, Compiler::value b, bool not_zero) {
 	if (a.t->is_string() and b.t->is_string()) {
 		return insn_call(Type::array(env.string), {a, b}, "Value.operator/");
 	}
 	auto bv = to_real(b);
-	insn_if(insn_eq(bv, new_integer(0)), [&]() {
-		insn_delete_temporary(a);
-		insn_delete_temporary(b);
-		insn_throw_object(vm::Exception::DIVISION_BY_ZERO);
-	});
+	if (not not_zero) {
+		insn_if(insn_eq(bv, new_integer(0)), [&]() {
+			insn_delete_temporary(a);
+			insn_delete_temporary(b);
+			insn_throw_object(vm::Exception::DIVISION_BY_ZERO);
+		});
+	}
 	value r = { builder.CreateFDiv(to_real(a).v, bv.v), env.real };
 	insn_delete_temporary(a);
 	insn_delete_temporary(b);
@@ -1018,6 +1119,9 @@ Compiler::value Compiler::insn_to_any(Compiler::value v) {
 	if (v.t->is_polymorphic()) {
 		return v; // already any
 	}
+	if (v.t->is_fixed_array_or_ptr()) {
+		return insn_convert(v, env.any);
+	}
 	if (v.t->is_long()) {
 		return insn_call(env.tmp_any, {to_real(v)}, "Number.new.4");
 	} else if (v.t->is_real()) {
@@ -1043,6 +1147,7 @@ Compiler::value Compiler::insn_to_any(Compiler::value v) {
 
 Compiler::value Compiler::insn_to_bool(Compiler::value v) {
 	assert(v.t->llvm(*this) == v.v->getType());
+	// std::cout << "insn_to_bool " << v.t << std::endl;
 	if (v.t->is_bool()) {
 		return v;
 	}
@@ -1054,6 +1159,12 @@ Compiler::value Compiler::insn_to_bool(Compiler::value v) {
 	}
 	if (v.t->is_string()) {
 		return insn_call(env.boolean, {v}, "String.to_bool");
+	}
+	if (v.t->is_fixed_array()) {
+		return new_bool(v.t->size() > 0);
+	}
+	if (v.t->is_fixed_array_ptr()) {
+		return new_bool(v.t->pointed()->size() > 0);
 	}
 	if (v.t->is_array()) {
 		// Always take LSArray<int>, but the array is not necessarily of this type
@@ -1106,6 +1217,7 @@ Compiler::value Compiler::insn_member_address(Compiler::value v, int pos) {
 void Compiler::insn_store(Compiler::value x, Compiler::value y) {
 	// std::cout << "insn_store " << x.t << " " << x.v->getType() << " " << y.t << std::endl;
 	assert(check_value(x));
+	assert(x.t->is_pointer());
 	// assert(y.t->llvm(*this) == y.v->getType());
 	// std::cout << x.t->pointed()->fold() << " = " << y.t->fold()->not_temporary() << std::endl;
 	// assert(x.t->pointed()->fold() == y.t->fold()->not_temporary());
@@ -1139,10 +1251,21 @@ Compiler::value Compiler::insn_class_of(Compiler::value v) {
 	}
 }
 
+void Compiler::insn_delete_fixed_array(Compiler::value v) {
+	auto array_type = v.t->is_fixed_array_ptr() ? v.t->pointed() : v.t;
+	for (size_t index = 0; index < array_type->size(); ++index) {
+		if (array_type->element(index)->must_manage_memory()) {
+			insn_delete(insn_fixed_array_at(v, index));
+		}
+	}
+}
+
 void Compiler::insn_delete(Compiler::value v) {
 	// std::cout << "insn_delete " << v.t << " " << v.v->getType() << std::endl;
 	assert(v.t->llvm(*this) == v.v->getType());
-	if (v.t->must_manage_memory()) {
+	if (v.t->is_fixed_array()) {
+		insn_delete_fixed_array(v);
+	} else if (v.t->must_manage_memory()) {
 		insn_call(env.void_, {v}, "Value.delete_ref");
 	} else if (v.t->is_mpz_ptr()) {
 		insn_delete_mpz(v);
@@ -1152,7 +1275,9 @@ void Compiler::insn_delete(Compiler::value v) {
 void Compiler::insn_delete_variable(Compiler::value v) {
 	// std::cout << "delete variable " << v.t << std::endl;
 	assert(check_value(v));
-	if (v.t->is_mpz_ptr()) {
+	if (v.t->is_fixed_array()) {
+		insn_delete_fixed_array(v);
+	} else if (v.t->is_mpz_ptr()) {
 		insn_delete_mpz(v);
 	} else {
 		if (v.t->pointed()->must_manage_memory()) {
@@ -1164,9 +1289,12 @@ void Compiler::insn_delete_variable(Compiler::value v) {
 void Compiler::insn_delete_temporary(Compiler::value v) {
 	assert(v.t->llvm(*this) == v.v->getType());
 	if (not v.t->temporary) return;
+	// std::cout << "delete temporary " << v.t << std::endl;
 	if (v.t == env.tmp_mpz_ptr || v.t == env.tmp_mpz) {
 		insn_delete_mpz(v);
-	} if (v.t->must_manage_memory()) {
+	} else if (v.t->is_fixed_array_or_ptr()) {
+		insn_delete_fixed_array(v);
+	} else if (v.t->must_manage_memory()) {
 		insn_call(env.void_, {v}, "Value.delete");
 	}
 }
@@ -1237,9 +1365,72 @@ Compiler::value Compiler::insn_array_at(Compiler::value array, Compiler::value i
 	return r;
 }
 
+Compiler::value Compiler::insn_fixed_array_at(Compiler::value array, int index) {
+
+	assert(check_value(array));
+	// std::cout << "insn_fixed_array_at " << array.t << " index = " << index << /* ", size = " << array.t->pointed()->size() << */ std::endl;
+	// assert(array.t->is_fixed_array_ptr());
+	assert(index >= 0 and index < array.t->size());
+
+	if (array.t->is_fixed_array()) {
+		auto array_type = array.v->getType();
+		auto element_type = array.t->element(index);
+		auto v = builder.CreateExtractValue(array.v, index);
+		value r = { v, element_type };
+		assert(check_value(r));
+		return r;
+	} else {
+		auto array_type = array.v->getType()->getPointerElementType();
+		auto element_type = array.t->pointed()->element(index);
+		auto address = builder.CreateStructGEP(array_type, array.v, index);
+		value r = { address, element_type->pointer() };
+		assert(check_value(r));
+		return insn_load(r);
+	}
+}
+
+Compiler::value Compiler::insn_fixed_array_at_addr(Compiler::value array, int index) {
+
+	assert(check_value(array));
+	// std::cout << "insn_fixed_array_at " << array.t << " index = " << index << /* ", size = " << array.t->pointed()->size() << */ std::endl;
+	assert(array.t->is_fixed_array_ptr());
+	assert(index >= 0 and index < array.t->size());
+
+	auto array_type = array.v->getType()->getPointerElementType();
+	auto element_type = array.t->pointed()->element(index);
+	auto address = builder.CreateStructGEP(array_type, array.v, index);
+	value r = { address, element_type->pointer() };
+	assert(check_value(r));
+	return r;
+}
+
+Compiler::value Compiler::insn_fixed_array_at(Compiler::value array, Compiler::value index) {
+	assert(check_value(array));
+
+	assert(false and "Pas implémenté encore...");
+}
+
+Compiler::value Compiler::insn_fixed_array_range(Compiler::value array, int index, int index2) {
+	assert(check_value(array));
+	std::vector<Compiler::value> elements;
+	for (size_t i = index; i <= index2; ++i) {
+		elements.push_back(insn_fixed_array_at(array, i));
+	}
+	return new_fixed_array(elements);
+}
+
 Compiler::value Compiler::insn_array_end(Compiler::value array) {
 	assert(check_value(array));
 	return insn_load_member(array, 6);
+}
+
+std::vector<Compiler::value> Compiler::insn_get_fixed_array_values(Compiler::value array) {
+	assert(check_value(array));
+	std::vector<Compiler::value> values;
+	for (size_t i = 0; i < array.t->size(); ++i) {
+		values.push_back(insn_fixed_array_at(array, i));
+	}
+	return values;
 }
 
 Compiler::value Compiler::insn_move_inc(Compiler::value value) {
@@ -1308,6 +1499,14 @@ Compiler::value Compiler::insn_dec_refs(Compiler::value v) {
 
 Compiler::value Compiler::insn_move(Compiler::value v) {
 	assert(check_value(v));
+	if (v.t->is_fixed_array_or_ptr()) {
+		for (size_t index = 0; index < v.t->size(); ++index) {
+			if (v.t->element(index)->must_manage_memory()) {
+				insn_inc_refs(insn_fixed_array_at(v, index));
+			}
+		}
+		return v.t->is_fixed_array_ptr() ? insn_load(v) : v;
+	}
 	if (v.t->fold()->must_manage_memory() and !v.t->temporary and !v.t->reference) {
 		return insn_call(v.t->add_temporary(), {v}, "Value.move");
 	}
@@ -1718,6 +1917,10 @@ void Compiler::iterator_rincrement(const Type* collectionType, Compiler::value i
 
 Compiler::value Compiler::insn_foreach(Compiler::value container, const Type* output, Variable* var, Variable* key, std::function<Compiler::value(Compiler::value, Compiler::value)> body, bool reversed, std::function<Compiler::value(Compiler::value, Compiler::value)> body2) {
 
+	if (container.t->is_fixed_array() or container.t->is_fixed_array_ptr()) {
+		container = insn_convert(container, Type::array(container.t->element()));
+	}
+
 	ForeachMode mode = [&]() {
 		if (container.t->is_number() or container.t->is_string() or container.t->is_interval()) {
 			return ForeachMode::VALUE;
@@ -1830,6 +2033,27 @@ void Compiler::insn_if(Compiler::value condition, std::function<void()> then, st
 	insn_label(&label_end);
 	// current_block()->blocks.push_back(label_end.block);
 }
+
+void Compiler::insn_if_return(Compiler::value condition, std::function<void()> then) {
+	assert(condition.t->llvm(*this) == condition.v->getType());
+	auto label_then = insn_init_label("then");
+	auto label_end = insn_init_label("end");
+	insn_if_new(insn_to_bool(condition), &label_then, &label_end);
+	insn_label(&label_then);
+	then();
+	insn_label(&label_end);
+}
+
+void Compiler::insn_if_not_return(Compiler::value condition, std::function<void()> then) {
+	assert(condition.t->llvm(*this) == condition.v->getType());
+	auto label_then = insn_init_label("then");
+	auto label_end = insn_init_label("end");
+	insn_if_new(insn_to_bool(condition), &label_end, &label_then);
+	insn_label(&label_then);
+	then();
+	insn_label(&label_end);
+}
+
 void Compiler::insn_if_new(Compiler::value cond, label* then, label* elze) {
 	assert(cond.t->llvm(*this) == cond.v->getType());
 	builder.CreateCondBr(cond.v, then->block, elze->block);
@@ -1985,7 +2209,7 @@ Compiler::value Compiler::insn_invoke(const Type* return_type, std::vector<Compi
 	}
 }
 
-Compiler::value Compiler::insn_call(Compiler::value fun, std::vector<Compiler::value> args) {
+Compiler::value Compiler::insn_call(Compiler::value fun, std::vector<Compiler::value> args, bool readonly) {
 	// std::cout << "insn_call " << fun.t << " " << fun.v->getType() << std::endl;
 	std::vector<llvm::Value*> llvm_args;
 	if (fun.t->is_closure()) {
@@ -2014,6 +2238,7 @@ Compiler::value Compiler::insn_call(Compiler::value fun, std::vector<Compiler::v
 	// TODO tail call elimination #197
 	// r->setTailCall(true);
 	// r->setTailCallKind(llvm::CallInst::TailCallKind::TCK_Tail);
+
 	if (fun.t->return_type()->is_void()) {
 		return { env };
 	} else {
@@ -2100,6 +2325,59 @@ void Compiler::function_add_capture(Compiler::value fun, Compiler::value capture
 
 void Compiler::log(const std::string&& str) { assert(false); }
 
+Compiler::value Compiler::create_and_call_std_method(std::string name, std::vector<value> args, const Type* return_type, std::function<void(Compiler& c, std::vector<Compiler::value> args)> fun, bool throws) {
+
+	std::vector<const Type*> arg_types;
+	for (const auto& arg : args) {
+		arg_types.push_back(arg.t->not_temporary());
+	}
+	auto function_type = Type::fun(return_type, arg_types);
+	std::pair<std::string, std::vector<const Type*>> key { name, arg_types };
+
+	auto i = program->std_functions.find(key);
+	if (i != program->std_functions.end()) {
+		return insn_call({ i->second, function_type }, args);
+	}
+
+	auto f = llvm::Function::Create((llvm::FunctionType*) function_type->llvm(*this), llvm::Function::InternalLinkage, name, program->module);
+	auto block = llvm::BasicBlock::Create(getContext(), "block");
+
+	if (throws) {
+		auto personalityfn = program->module->getFunction("__gxx_personality_v0");
+		if (!personalityfn) {
+			personalityfn = llvm::Function::Create(llvm::FunctionType::get(llvm::Type::getInt32Ty(getContext()), true), llvm::Function::ExternalLinkage, "__gxx_personality_v0", program->module);
+		}
+		f->setPersonalityFn(personalityfn);
+	}
+
+	auto function = new Function(env, program->file);
+	auto token = new Token(TokenType::FUNCTION, program->file, 0, 0, 0, name);
+	auto function_version = new FunctionVersion(env, nullptr);
+	function_version->parent = function;
+
+	enter_function(f, false, function_version);
+	F->getBasicBlockList().push_back(block);
+	builder.SetInsertPoint(block);
+
+	std::vector<Compiler::value> arguments;
+	unsigned index = 0;
+	for (auto& arg : f->args()) {
+		const auto type = args.at(index).t;
+		arguments.push_back({&arg, type->not_temporary()});
+		arg.setName("arg");
+		index++;
+	}
+
+	fun(*this, arguments);
+
+	leave_function();
+	llvm::verifyFunction(*f);
+
+	program->std_functions.emplace(key, f);
+
+	return insn_call({f, function_type}, args);
+}
+
 // Blocks
 void Compiler::enter_block(Block* block) {
 	// std::cout << "enter_block" << std::endl;
@@ -2178,6 +2456,7 @@ void Compiler::delete_variables_block(int deepness) {
 					const auto& var = it->second;
 					// std::cout << "delete variable block " << var << " " << var->type << " " << var->entry.v << " scope " << (int) var->scope << " " << var->assignment << " section " << section->id << std::endl;
 					if (variable.second->scope != VarScope::CAPTURE) {
+						comment("Delete variable " + var->name);
 						var->delete_value(*this);
 					}
 					break;
@@ -2223,10 +2502,10 @@ void Compiler::enter_function(llvm::Function* F, bool is_closure, FunctionVersio
 	exception_line.push(-1);
 	this->F = F;
 	this->fun = fun;
-	std::vector<std::string> args;
-	for (unsigned i = 0; i < fun->parent->arguments.size(); ++i) {
-		args.push_back(fun->parent->arguments.at(i)->content);
-	}
+	// std::vector<std::string> args;
+	// for (unsigned i = 0; i < fun->parent->arguments.size(); ++i) {
+	// 	args.push_back(fun->parent->arguments.at(i)->content);
+	// }
 }
 
 void Compiler::leave_function() {

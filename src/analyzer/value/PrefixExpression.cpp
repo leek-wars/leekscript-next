@@ -9,7 +9,7 @@ namespace ls {
 
 PrefixExpression::PrefixExpression(Environment& env, std::shared_ptr<Operator> op, std::unique_ptr<Value> expression)
 	: Value(env), operatorr(op), expression(std::move(expression)) {
-		assert(this->expression.get());
+		// assert(this->expression.get());
 }
 
 void PrefixExpression::print(std::ostream& os, int indent, PrintOptions options) const {
@@ -76,7 +76,7 @@ void PrefixExpression::analyze(SemanticAnalyzer* analyzer) {
 			if (vv->name == "Number") type = env.integer;
 			else if (vv->name == "Boolean") type = env.boolean;
 			else if (vv->name == "String") type = env.tmp_string;
-			else if (vv->name == "Array") type = Type::tmp_array(env.never);
+			else if (vv->name == "Array") type = env.tmp_empty_array;
 			else if (vv->name == "Object") type = env.tmp_object;
 			else if (vv->name == "Set") type = Type::tmp_set(env.any);
 		}
@@ -91,7 +91,7 @@ void PrefixExpression::analyze(SemanticAnalyzer* analyzer) {
 				}
 				else if (vv->name == "Boolean") type = env.boolean;
 				else if (vv->name == "String") type = env.tmp_string;
-				else if (vv->name == "Array") type = Type::tmp_array(env.never);
+				else if (vv->name == "Array") type = env.tmp_empty_array;
 				else if (vv->name == "Object") type = env.tmp_object;
 				else if (vv->name == "Set") type = Type::tmp_set(env.any);
 			}
@@ -145,7 +145,8 @@ Compiler::value PrefixExpression::compile(Compiler& c) const {
 			}
 		}
 		case TokenType::NOT: {
-			if (expression->type->is_primitive()) {
+			// TODO simplify
+			if (expression->type->is_primitive() or expression->type->is_fixed_array() or expression->type->is_fixed_array_ptr()) {
 				// std::cout << "PreExpr compile expr " << std::endl;
 				auto x = expression->compile(c);
 				assert(x.t->llvm(c) == x.v->getType());
@@ -190,7 +191,7 @@ Compiler::value PrefixExpression::compile(Compiler& c) const {
 					return c.insn_call(c.env.tmp_string, {}, "String.new");
 				}
 				else if (vv->name == "Array") {
-					return c.new_array(c.env.void_, {});
+					return c.new_fixed_array(std::vector<Compiler::value> {});
 				}
 				else if (vv->name == "Object") {
 					return c.new_object();
@@ -218,7 +219,7 @@ Compiler::value PrefixExpression::compile(Compiler& c) const {
 						return c.insn_call(c.env.tmp_string, {}, "String.new");
 					}
 					if (vv->name == "Array") {
-						return c.new_array(c.env.void_, {});
+						return c.new_fixed_array(std::vector<Compiler::value> {});
 					}
 					if (vv->name == "Object") {
 						return c.new_object();

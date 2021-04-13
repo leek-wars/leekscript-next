@@ -83,6 +83,7 @@ public:
 };
 
 std::ostream& operator << (std::ostream& os, const Value* v);
+std::ostream& operator << (std::ostream&, const std::unique_ptr<Value>&);
 
 }
 

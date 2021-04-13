@@ -20,6 +20,7 @@ class Function;
 class Value;
 class Function_type;
 class Environment;
+class SemanticAnalyzer;
 #if COMPILER
 class Compiler;
 #endif
@@ -46,8 +47,11 @@ public:
 	virtual const std::vector<const Type*>& arguments() const;
 	virtual const Type* element() const;
 	virtual const Type* element(size_t index) const;
+	virtual const Type* range(size_t index, size_t index2) const;
+	virtual const Type* change_element(size_t index, const Type* type) const;
 	virtual const std::vector<const Type*>& elements() const;
 	virtual size_t size() const;
+	virtual size_t bits() const;
 	virtual const Type* key() const;
 	virtual const Type* member(int) const;
 	virtual const Value* function() const { return nullptr; }
@@ -79,11 +83,14 @@ public:
 	const Type* operator | (const Type* type) const;
 	void operator |= (const Type* type);
 	const Type* operator * (const Type* t2) const;
-	const Type* concat(const Type* type) const;
-	const Type* fold() const;
 	virtual bool operator == (const Type*) const = 0;
 	const Type* add(const Type* type, bool in_loop = false) const;
+	const Type* push(const Type* type, bool in_loop = false) const;
+	const Type* fold() const;
 	const Type* filter(std::function<bool(const Type*)> fun) const;
+	virtual const Type* op_map(SemanticAnalyzer& analyzer, const Type* fun) const;
+	virtual const Type* op_map(const Type* fun) const;
+	virtual const Type* op_filter(SemanticAnalyzer& analyzer, const Type* fun) const;
 
 	template <class T> bool is_type() const;
 	template <class T> bool can_be_type() const;
@@ -102,6 +109,8 @@ public:
 	bool is_mpz_ptr() const;
 	bool is_array() const;
 	bool is_fixed_array() const;
+	bool is_fixed_array_ptr() const;
+	bool is_fixed_array_or_ptr() const;
 	bool is_string() const;
 	bool is_set() const;
 	bool is_interval() const;
@@ -134,8 +143,8 @@ public:
     static const Type* array(const Type*);
 	static const Type* const_array(const Type*);
 	static const Type* tmp_array(const Type*);
-	static const Type* fixed_array(std::vector<const Type*>);
-	static const Type* tmp_fixed_array(std::vector<const Type*>);
+	static const Type* fixed_array(Environment& env, std::vector<const Type*>);
+	static const Type* tmp_fixed_array(Environment& env, std::vector<const Type*>);
 	static const Type* set(const Type*);
 	static const Type* const_set(const Type*);
 	static const Type* tmp_set(const Type*);
@@ -153,13 +162,18 @@ public:
 
 	static const Type* meta_or(const Type* t1, const Type* t2);
 	static const Type* meta_add(const Type* t1, const Type* t2);
-	static const Type* meta_concat(const Type* t1, const Type* t2);
+	static const Type* meta_push(const Type* t1, const Type* t2);
 	static const Type* meta_mul(const Type* t1, const Type* t2);
 	static const Type* meta_base_of(const Type* type, const Type* base);
 	static const Type* meta_element(const Type* type);
+	static const Type* meta_elements(const Type* type);
 	static const Type* meta_temporary(const Type* type);
 	static const Type* meta_not_temporary(const Type* type);
 	static const Type* meta_not_void(const Type* type);
+	static const Type* meta_map(const Type* array, const Type* fun);
+	static const Type* meta_filter(const Type* array, const Type* fun);
+
+	static std::string vector_to_string(std::vector<const Type*> type);
 };
 
 std::ostream& operator << (std::ostream&, const Type*);

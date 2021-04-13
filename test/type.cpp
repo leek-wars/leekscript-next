@@ -8,6 +8,9 @@ void Test::test_types() {
 	auto& env = getEnv();
 
 	auto p1 = env.generate_new_placeholder_type();
+	auto int_array = ls::Type::array(env.integer);
+	auto real_array = ls::Type::array(env.real);
+	auto empty_array = ls::Type::fixed_array(env, {});
 
 	header("Types");
 	section("JSON name");
@@ -39,7 +42,7 @@ void Test::test_types() {
 	test("array<any>", pt(ls::Type::array(env.any)), BLUE_BOLD "array" END_COLOR "<" BLUE_BOLD "any" END_COLOR ">");
 	test("object", pt(env.object), BLUE_BOLD "object" END_COLOR);
 	//assert_print(ls::Type::array(env.integer).iterator(), BLUE_BOLD "iterator" END_COLOR "<" BLUE_BOLD "array" END_COLOR "<" BLUE_BOLD "int" END_COLOR ">>");
-	test("integer | string", pt(ls::Type::compound({env.integer, env.string})), BLUE_BOLD "int" END_COLOR " | " BLUE_BOLD "string" END_COLOR);
+	test("integer | string", pt(ls::Type::compound(env, {env.integer, env.string})), BLUE_BOLD "int" END_COLOR " | " BLUE_BOLD "string" END_COLOR);
 
 	section("operator ==");
 	test("void", env.void_, env.void_);
@@ -48,7 +51,7 @@ void Test::test_types() {
 	test("array<int>", ls::Type::array(env.integer), ls::Type::array(env.integer));
 	test("array<real>", ls::Type::array(env.real), ls::Type::array(env.real));
 	test("map<any, any>", ls::Type::map(env.any, env.any), ls::Type::map(env.any, env.any));
-	test("integer | string", ls::Type::compound({env.integer, env.string}), ls::Type::compound({env.integer, env.string}));
+	test("integer | string", ls::Type::compound(env, {env.integer, env.string}), ls::Type::compound(env, {env.integer, env.string}));
 	test("(-> null).return", ls::Type::fun(env.null, {})->return_type(), env.null);
 	test("mpz*", env.mpz->pointer(), env.mpz_ptr);
 	test("mpz*.pointed", env.mpz_ptr->pointed(), env.mpz);
@@ -70,8 +73,8 @@ void Test::test_types() {
 	test("array<any>", ls::Type::array(env.any)->is_array(), true);
 	test("array<integer>", ls::Type::array(env.integer)->is_array(), true);
 	test("array<real>", ls::Type::array(env.real)->is_array(), true);
-	test("array<integer> | array<real>", ls::Type::compound({ ls::Type::array(env.integer), ls::Type::array(env.real) })->is_array(), true);
-	test("array<integer> | set<real>", ls::Type::compound({ ls::Type::array(env.integer), ls::Type::set(env.real) })->is_array(), false);
+	test("array<integer> | array<real>", ls::Type::compound(env, { ls::Type::array(env.integer), ls::Type::array(env.real) })->is_array(), true);
+	test("array<integer> | set<real>", ls::Type::compound(env, { ls::Type::array(env.integer), ls::Type::set(env.real) })->is_array(), false);
 
 	section("castable");
 	test("real -> int", env.real->castable(env.integer), true);
@@ -87,6 +90,26 @@ void Test::test_types() {
 	test("boolean -> number", env.boolean->castable(env.number), true);
 	test("array<real> -> any", ls::Type::array(env.real)->castable(env.any), true);
 	test("array<real> -> const:any", ls::Type::array(env.real)->castable(env.const_any), true);
+	test("array[] -> array<int>", empty_array->castable(int_array), true);
+	test("array[] -> array", empty_array->castable(env.array), true);
+	test("array[]* -> array", empty_array->pointer()->castable(env.array), true);
+	test("int -> string", env.integer->castable(env.string), false);
+	test("string -> int", env.string->castable(env.integer), false);
+
+	// Fixed arrays
+	test("array[int] -> array[]", ls::Type::fixed_array(env, { env.integer })->castable(env.array), true);
+	test("array[int] -> array<int>", ls::Type::fixed_array(env, { env.integer })->castable(int_array), true);
+	test("array[int, int] -> array<int>", ls::Type::fixed_array(env, { env.integer, env.integer })->castable(int_array), true);
+	test("array<int> -> array[int]", int_array->castable(ls::Type::fixed_array(env, { env.integer })), true);
+	test("array<int> -> array[int, int]", int_array->castable(ls::Type::fixed_array(env, { env.integer, env.integer })), true);
+	test("array[int] -> array<real>", ls::Type::fixed_array(env, { env.integer })->castable(real_array), true);
+	test("array[int, int] -> array<real>", ls::Type::fixed_array(env, { env.integer, env.integer })->castable(real_array), true);
+	test("array[int] -> array[]", ls::Type::fixed_array(env, { env.integer })->castable(empty_array), false);
+	test("array[int]* -> array[]", ls::Type::fixed_array(env, { env.integer })->pointer()->castable(empty_array), false);
+	test("array[int]* -> array[]*", ls::Type::fixed_array(env, { env.integer })->pointer()->castable(empty_array->pointer()), false);
+	test("array[] -> array[int]", empty_array->castable(ls::Type::fixed_array(env, { env.integer })), false);
+	test("array[]* -> array[int]", empty_array->pointer()->castable(ls::Type::fixed_array(env, { env.integer })), false);
+	test("array[]* -> array[int]*", empty_array->pointer()->castable(ls::Type::fixed_array(env, { env.integer })->pointer()), false);
 
 	section("strictCastable");
 	test("int -> real", env.integer->strictCastable(env.real), true);
@@ -95,9 +118,9 @@ void Test::test_types() {
 	section("Distance");
 	test("number <=> any", env.number->distance(env.any), 1);
 	test("mpz* <=> any", env.mpz_ptr->distance(env.any), 10);
-	test("integer | real <=> real", ls::Type::compound({ env.integer, env.real })->distance(env.real), 0);
-	test("real <=> integer | real", env.real->distance(ls::Type::compound({ env.integer, env.real })), 0);
-	test("integer | real <=> integer | real", ls::Type::compound({ env.integer, env.real })->distance(ls::Type::compound({ env.integer, env.real })), 0);
+	test("integer | real <=> real", ls::Type::compound(env, { env.integer, env.real })->distance(env.real), 0);
+	test("real <=> integer | real", env.real->distance(ls::Type::compound(env, { env.integer, env.real })), 0);
+	test("integer | real <=> integer | real", ls::Type::compound(env, { env.integer, env.real })->distance(ls::Type::compound(env, { env.integer, env.real })), 0);
 	test("const:string <=> string&&", env.const_string->distance(env.tmp_string), -1);
 	test("string <=> number", env.string->distance(env.number), -1);
 	test("p.element <=> any", p1->element()->distance(env.any), 0);
@@ -106,8 +129,8 @@ void Test::test_types() {
 	section("element()");
 	test("array<int>.element", ls::Type::array(env.integer)->element(), env.integer);
 	test("array<p>.element", ls::Type::array(p1)->element(), p1);
-	test("array<int | p>.element", ls::Type::array(ls::Type::compound({ env.integer, p1 }))->element(), ls::Type::compound({ env.integer, p1 }));
-	test("(array<int> | array<real>).element", ls::Type::compound({ ls::Type::array(env.integer), ls::Type::array(env.real) })->element(), ls::Type::compound({ env.integer, env.real }));
+	test("array<int | p>.element", ls::Type::array(ls::Type::compound(env, { env.integer, p1 }))->element(), ls::Type::compound(env, { env.integer, p1 }));
+	test("(array<int> | array<real>).element", ls::Type::compound(env, { ls::Type::array(env.integer), ls::Type::array(env.real) })->element(), ls::Type::compound(env, { env.integer, env.real }));
 
 	section("placeholder");
 	test("array<p.element>", ls::Type::array(p1->element()), p1);
@@ -162,30 +185,32 @@ void Test::test_types() {
 	test("int * string", env.integer->operator * (env.string), env.any);
 	test("int * bool", env.integer->operator * (env.boolean), env.any);
 	test("any * fun", env.any->operator * (ls::Type::fun(env.void_, {})), env.any);
-	test("array<int> * array<real>", ls::Type::array(env.integer)->operator * (ls::Type::array(env.real)), env.any);
+	test("array<int> * array<real>", ls::Type::array(env.integer)->operator * (ls::Type::array(env.real)), real_array);
 	test("int * fun", env.integer->operator * (ls::Type::fun(env.void_, {})), env.any);
 	test("never * int", env.never->operator * (env.integer), env.integer);
-	test("array<never> * array<int>", ls::Type::array(env.never)->operator * (ls::Type::array(env.integer)), ls::Type::array(env.integer));
+	test("array[] * array<int>", env.empty_array->operator * (ls::Type::array(env.integer)), ls::Type::array(env.integer));
+	test("array[] * array[int]", env.empty_array->operator * (ls::Type::fixed_array(env, { env.integer })), int_array);
 
 	section("fold");
 	test("void.fold()", env.void_->fold(), env.void_);
 	test("null.fold()", env.null->fold(), env.null);
-	test("{int}.fold()", ls::Type::compound({env.integer})->fold(), env.integer);
-	test("{int, int}.fold()", ls::Type::compound({env.integer, env.integer})->fold(), env.integer);
-	test("{int, real}.fold()", ls::Type::compound({env.integer, env.real})->fold(), env.real);
-	test("{array<int>, array<real>}.fold()", ls::Type::compound({ls::Type::array(env.integer), ls::Type::array(env.real)})->fold(), env.any);
+	test("{int}.fold()", ls::Type::compound(env, {env.integer})->fold(), env.integer);
+	test("{int, int}.fold()", ls::Type::compound(env, {env.integer, env.integer})->fold(), env.integer);
+	test("{int, real}.fold()", ls::Type::compound(env, {env.integer, env.real})->fold(), env.real);
+	test("{array<int>, array<real>}.fold()", ls::Type::compound(env, {int_array, real_array})->fold(), real_array);
 	test("string&&.fold()", env.tmp_string->fold(), env.tmp_string);
 	test("mpz.fold", env.mpz->fold(), env.mpz);
 	test("mpz*.fold", env.mpz_ptr->fold(), env.mpz_ptr);
 	test("mpz&&.fold", env.tmp_mpz->fold(), env.tmp_mpz);
 	test("mpz*&&.fold", env.tmp_mpz_ptr->fold(), env.tmp_mpz_ptr);
+	test("{array[]*, array[int]*}.fold()", ls::Type::compound(env, {empty_array->pointer(), ls::Type::fixed_array(env, { env.integer })->pointer() })->fold(), int_array);
 
 	section("temporary");
 	test("int&&", env.integer->add_temporary(), env.integer);
 	test("string&&", env.string->add_temporary(), env.tmp_string);
-	test("(int | string)&&.fold", ls::Type::compound({env.integer, env.string})->add_temporary()->fold(), env.any->add_temporary());
+	test("(int | string)&&.fold", ls::Type::compound(env, {env.integer, env.string})->add_temporary()->fold(), env.any->add_temporary());
 	test("(const:int)&&", env.integer->add_constant()->add_temporary(), env.integer->add_constant());
-	test("(array<int> | array<real>)&&", ls::Type::compound({ ls::Type::array(env.integer), ls::Type::array(env.real) })->add_temporary(), ls::Type::tmp_compound({ ls::Type::array(env.integer), ls::Type::array(env.real) }));
+	test("(array<int> | array<real>)&&", ls::Type::compound(env, { ls::Type::array(env.integer), ls::Type::array(env.real) })->add_temporary(), ls::Type::tmp_compound(env, { ls::Type::array(env.integer), ls::Type::array(env.real) }));
 
 	section("LLVM type");
 	// test("void", env.void_->llvm(), llvm::Type::getVoidTy(vm->compiler.getContext()));
@@ -201,13 +226,13 @@ void Test::test_types() {
 	code("12").type(env.integer);
 	code("12.5").type(env.real);
 	code("'salut'").type(env.tmp_string);
-	code("[]").type(ls::Type::tmp_array(env.never));
-	code("[1]").type(ls::Type::tmp_array(env.integer));
-	code("[1, 2.5]").type(ls::Type::tmp_array(ls::Type::compound({env.integer, env.real})));
-	code("['a']").type(ls::Type::tmp_array(env.string));
-	code("[[1]]").type(ls::Type::tmp_array(ls::Type::array(env.integer)));
-	code("[[1, 2.5]]").type(ls::Type::tmp_array(ls::Type::array(ls::Type::compound({env.integer, env.real}))));
-	code("[['a']]").type(ls::Type::tmp_array(ls::Type::array(env.string)));
+	code("[]").type(env.tmp_empty_array);
+	code("[1]").type(ls::Type::tmp_fixed_array(env, { env.integer }));
+	code("[1, 2.5]").type(ls::Type::tmp_fixed_array(env, { env.integer, env.real }));
+	code("['a']").type(ls::Type::tmp_fixed_array(env, { env.string }));
+	code("[[1]]").type(ls::Type::tmp_fixed_array(env, { ls::Type::fixed_array(env, { env.integer }) }));
+	code("[[1, 2.5]]").type(ls::Type::tmp_fixed_array(env, { ls::Type::fixed_array(env, { env.integer, env.real }) }));
+	code("[['a']]").type(ls::Type::tmp_fixed_array(env, { ls::Type::fixed_array(env, { env.string }) }));
 
-	// if (success_count != total) assert(false && "Type tests failed!");
+	if (success_count != total) assert(false && "Type tests failed!");
 }

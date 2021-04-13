@@ -71,11 +71,11 @@ NumberSTD::NumberSTD(Environment& env) : Module(env, "Number") {
 		{env.const_integer, env.const_string, env.tmp_string, ADDR((void*) &StringSTD::add_int_r)}
 	}, LEGACY);
 	operator_("+=", {
-		{env.mpz_ptr, env.mpz_ptr, env.tmp_mpz_ptr, ADDR(add_eq_mpz_mpz), 0, { env.convert_mutator }, true},
-		{env.mpz_ptr, env.integer, env.tmp_mpz_ptr, ADDR(add_eq_mpz_int), 0, { env.convert_mutator }, true},
-		{env.real, env.real, env.real, ADDR(add_eq_real), 0, { env.convert_mutator }, true},
-		{env.long_, env.long_, env.long_, ADDR(add_eq_real), 0, { env.convert_mutator }, true},
-		{env.integer, env.integer, env.integer, ADDR(add_eq_real), 0, { env.convert_mutator }, true}
+		{env.mpz_ptr, env.mpz_ptr, env.tmp_mpz_ptr, ADDR(add_eq_mpz_mpz), 0, { env.change_value_mutator }, true},
+		{env.mpz_ptr, env.integer, env.tmp_mpz_ptr, ADDR(add_eq_mpz_int), 0, { env.change_value_mutator }, true},
+		{env.real, env.real, env.real, ADDR(add_eq_real), 0, { env.change_value_mutator }, true},
+		{env.long_, env.long_, env.long_, ADDR(add_eq_real), 0, { env.change_value_mutator }, true},
+		{env.integer, env.integer, env.integer, ADDR(add_eq_real), 0, { env.change_value_mutator }, true}
 	}, LEGACY);
 	operator_("-", {
 		{env.mpz_ptr, env.mpz_ptr, env.tmp_mpz_ptr, ADDR(sub_mpz_mpz)},

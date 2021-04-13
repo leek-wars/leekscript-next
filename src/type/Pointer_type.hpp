@@ -17,6 +17,14 @@ public:
 	virtual const Value* function() const override;
 	virtual const Type* return_type() const override;
 	virtual const Type* argument(size_t) const override;
+	virtual const Type* element() const override;
+	virtual const Type* element(size_t) const override;
+	virtual const Type* op_map(SemanticAnalyzer& analyzer, const Type* fun) const override;
+	virtual const Type* op_map(const Type* fun) const override;
+	virtual const Type* op_filter(SemanticAnalyzer& analyzer, const Type* fun) const override;
+	virtual size_t size() const override;
+	virtual bool container() const override;
+	virtual bool iterable() const override;
 	virtual const std::vector<const Type*>& arguments() const override;
 	virtual const std::string getName() const override { return _type->getName() + "*"; }
 	virtual Json json() const override;

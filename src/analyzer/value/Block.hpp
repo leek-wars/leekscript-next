@@ -22,6 +22,7 @@ public:
 	bool temporary_mpz = false;
 	bool mpz_pointer = false;
 	bool was_reference = false;
+	bool fixed_array = false;
 	std::unordered_map<std::string, Variable*> variables;
 	std::vector<std::pair<Variable*, Variable*>> assignments;
 	std::vector<Variable*> temporary_variables;

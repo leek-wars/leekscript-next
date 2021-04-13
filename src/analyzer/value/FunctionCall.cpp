@@ -292,7 +292,12 @@ void FunctionCall::set_version(SemanticAnalyzer* analyzer, const std::vector<con
 const Type* FunctionCall::version_type(std::vector<const Type*> version) const {
 	// std::cout << "FunctionCall " << this << " ::version_type(" << version << ") " << std::endl;
 	auto function_type = function->version_type(function->version);
-	return function_type->return_type()->function()->version_type(version);
+	// std::cout << "FunctionCall function_type " << function_type->return_type() << " " << (void*) function_type->return_type()->function() << std::endl;
+	if (function_type->return_type()->function()) {
+		return function_type->return_type()->function()->version_type(version);
+	} else {
+		return function->type;
+	}
 }
 
 Completion FunctionCall::autocomplete(SemanticAnalyzer& analyzer, size_t position) const {
@@ -360,9 +365,13 @@ Compiler::value FunctionCall::compile(Compiler& c) const {
 	// std::cout << "callable_version = " << (void*) callable_version.template_() << std::endl;
 
 	if (call.object) {
-		callable_version.compile_mutators(c, { call.object });
+		if (call.object->isLeftValue()) {
+			callable_version.compile_mutators(c, { call.object });
+		}
 	} else if (arguments.size()) {
-		callable_version.compile_mutators(c, { arguments[0].get() });
+		if (arguments[0]->isLeftValue()) {
+			callable_version.compile_mutators(c, { arguments[0].get() });
+		}
 	}
 
 	std::vector<LSValueType> types;

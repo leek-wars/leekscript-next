@@ -23,6 +23,18 @@ const Type* Interval_type::key() const {
 const Type* Interval_type::element() const {
 	return env.integer;
 }
+
+const Type* Interval_type::op_map(SemanticAnalyzer& analyzer, const Type* fun) const {
+
+	auto type = ((Value*) fun->function())->will_take(&analyzer, { env.integer }, 1);
+	return Type::array(type->return_type());
+}
+
+const Type* Interval_type::op_map(const Type* fun) const {
+
+	return Type::array(fun->function()->version_type({ env.integer })->return_type());
+}
+
 const Type* Interval_type::iterator() const {
 	return Type::structure(env, "interval_iterator", {
 		env.interval, env.integer

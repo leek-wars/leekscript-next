@@ -62,14 +62,14 @@ void Test::test_system() {
 	code("System.print(12m ** 34m)").output("4922235242952026704037113243122008064\n");
 	code("let a = 52026704037113243m System.print(a)").output("52026704037113243\n");
 	code("System.print('salut !')").output("salut !\n");
-	code("System.print([1, 2, 3])").output("[1, 2, 3]\n");
-	code("System.print(['a', 'b', 'c'])").output("['a', 'b', 'c']\n");
+	DISABLED_code("System.print([1, 2, 3])").output("[1, 2, 3]\n");
+	DISABLED_code("System.print(['a', 'b', 'c'])").output("['a', 'b', 'c']\n");
 	code("let a = 123 System.print(123)").output("123\n");
 	code("let a = 123 System.print(a)").output("123\n");
 	code("let a = 'hello' System.print(a)").output("hello\n");
 	code("print(12)").output("12\n");
 	code("print('hello')").output("hello\n");
-	code("print([1, 2, 3])").output("[1, 2, 3]\n");
+	DISABLED_code("print([1, 2, 3])").output("[1, 2, 3]\n");
 
 	section("v1 debug");
 	code_v1("debug('hello')").output("hello\n");

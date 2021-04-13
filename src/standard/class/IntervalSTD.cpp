@@ -28,10 +28,11 @@ IntervalSTD::IntervalSTD(Environment& env) : Module(env, "Interval") {
 		{env.interval, env.integer, env.boolean, ADDR((void*) LSInterval::std_in_i)}
 	});
 
-	auto ttR = env.template_("R");
-	template_(ttR).
+	auto ttA = env.template_("A");
+	auto ttF = env.template_("F");
+	template_(ttA, ttF).
 	operator_("~~", {
-		{Type::tmp_array(ttR), {env.const_interval, Type::fun(ttR, {env.integer})}, ADDR(ArraySTD::map)},
+		{ Type::meta_base_of(ttA, env.interval), ttF, Type::meta_map(ttA, ttF), ADDR(ArraySTD::map) },
 	});
 
 	/*
@@ -46,10 +47,11 @@ IntervalSTD::IntervalSTD(Environment& env) : Module(env, "Interval") {
 		{Type::tmp_array(env.integer), {env.interval, pred_clo_type_int}, filter_clo}
 	});
 
-	auto mapR = env.template_("R");
-	template_(mapR).
+	auto mapA = env.template_("A");
+	auto mapF = env.template_("F");
+	template_(mapA, mapF).
 	method("map", {
-		{Type::tmp_array(Type::meta_not_void(mapR)), {env.const_interval, Type::fun(mapR, {env.integer})}, ADDR(ArraySTD::map)},
+		{ Type::meta_map(mapA, mapF), { Type::meta_base_of(mapA, env.interval), mapF }, ADDR(ArraySTD::map) },
 	});
 
 	method("sum", {

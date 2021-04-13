@@ -89,4 +89,9 @@ std::ostream& operator << (std::ostream& os, const Value* v) {
 	return os;
 }
 
+std::ostream& operator << (std::ostream& os, const std::unique_ptr<Value>& v) {
+	v->print(os, 0, { false, true, false });
+	return os;
+}
+
 }

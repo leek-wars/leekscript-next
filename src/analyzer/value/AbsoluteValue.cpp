@@ -42,7 +42,13 @@ Hover AbsoluteValue::hover(SemanticAnalyzer& analyzer, size_t position) const {
 
 #if COMPILER
 Compiler::value AbsoluteValue::compile(Compiler& c) const {
-	auto ex = c.insn_to_any(expression->compile(c));
+	auto ex = expression->compile(c);
+
+	if (ex.t->is_fixed_array_or_ptr()) {
+		return c.new_integer(ex.t->size());
+	}
+
+	ex = c.insn_to_any(ex);
 	c.mark_offset(location().start.line);
 	auto abso = c.insn_invoke(type, {ex}, "Value.absolute");
 	c.insn_delete_temporary(ex);

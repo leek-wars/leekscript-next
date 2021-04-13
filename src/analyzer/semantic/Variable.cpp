@@ -24,6 +24,9 @@ const Type* Variable::get_entry_type(Environment& env) const {
 	if (type->is_mpz_ptr()) {
 		return env.mpz;
 	}
+	if (type->is_fixed_array_ptr()) {
+		return type->pointed();
+	}
 	return type->not_temporary();
 }
 
@@ -37,7 +40,7 @@ Compiler::value Variable::get_value(Compiler& c) const {
 		assert(false);
 	}
 	// std::cout << "get_value " << this << std::endl;
-	if (type->is_mpz_ptr()) {
+	if (type->is_mpz_ptr() or type->is_fixed_array_ptr()) {
 		return entry; // mpz values are passed by pointer so we don't load the value
 	}
 	return c.insn_load(entry);
@@ -56,6 +59,7 @@ void Variable::create_entry(Compiler& c) {
 	auto t = get_entry_type(c.env);
 	entry = c.create_entry(name, t);
 }
+
 void Variable::create_addr_entry(Compiler& c, Compiler::value value) {
 	// std::cout << "create_addr_entry " << this << std::endl;
 	auto t = get_entry_type(c.env)->pointer();
@@ -64,7 +68,8 @@ void Variable::create_addr_entry(Compiler& c, Compiler::value value) {
 }
 
 void Variable::store_value(Compiler& c, Compiler::value value) {
-	if (value.t->is_mpz_ptr()) {
+	// std::cout << "Variable store_value " << value.t << std::endl;
+	if (value.t->is_mpz_ptr() or value.t->is_fixed_array_ptr()) {
 		auto v = c.insn_load(value);
 		c.insn_store(entry, v);
 	} else {
@@ -76,6 +81,10 @@ void Variable::delete_value(Compiler& c) {
 	if (type->is_mpz_ptr()) {
 		if (entry.v) {
 			c.insn_delete_mpz(entry);
+		}
+	} else if (type->is_fixed_array_ptr()) {
+		if (entry.v) {
+			c.insn_delete_fixed_array(entry);
 		}
 	} else if (type->must_manage_memory()) {
 		if (entry.v) {
@@ -98,6 +107,9 @@ const Type* Variable::get_type_for_variable_from_expression(Environment& env, co
 	}
 	if (expression->type->is_mpz() or expression->type->is_mpz_ptr()) {
 		return env.mpz_ptr;
+	}
+	if (expression->type->is_fixed_array()) {
+		return expression->type->pointer()->not_temporary();
 	}
 	return expression->type->not_temporary();
 }

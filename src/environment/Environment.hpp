@@ -40,7 +40,6 @@ private:
 	std::unordered_map<const Type*, const Type*> const_array_types;
 	std::unordered_map<const Type*, const Type*> tmp_array_types;
 	std::map<std::vector<const Type*>, std::unique_ptr<const Type>> fixed_array_types;
-	std::map<std::vector<const Type*>, const Type*> tmp_fixed_array_types;
 	std::unordered_map<const Type*, std::unique_ptr<const Type>> set_types;
 	std::unordered_map<const Type*, const Type*> const_set_types;
 	std::unordered_map<const Type*, const Type*> tmp_set_types;
@@ -60,13 +59,16 @@ private:
 	#endif
 	std::map<std::pair<const Type*, const Type*>, std::unique_ptr<const Type>> meta_or_types;
 	std::map<std::pair<const Type*, const Type*>, std::unique_ptr<const Type>> meta_add_types;
-	std::map<std::pair<const Type*, const Type*>, std::unique_ptr<const Type>> meta_concat_types;
+	std::map<std::pair<const Type*, const Type*>, std::unique_ptr<const Type>> meta_push_types;
 	std::map<std::pair<const Type*, const Type*>, std::unique_ptr<const Type>> meta_mul_types;
 	std::map<std::pair<const Type*, const Type*>, std::unique_ptr<const Type>> meta_base_of_types;
 	std::unordered_map<const Type*, std::unique_ptr<const Type>> meta_temporary_types;
 	std::unordered_map<const Type*, std::unique_ptr<const Type>> meta_element_types;
+	std::unordered_map<const Type*, std::unique_ptr<const Type>> meta_elements_types;
 	std::unordered_map<const Type*, std::unique_ptr<const Type>> meta_not_temporary_types;
 	std::unordered_map<const Type*, std::unique_ptr<const Type>> meta_not_void_types;
+	std::map<std::pair<const Type*, const Type*>, std::unique_ptr<const Type>> meta_map_types;
+	std::map<std::pair<const Type*, const Type*>, std::unique_ptr<const Type>> meta_filter_types;
 	std::vector<std::unique_ptr<const Type>> template_types;
 
 public:
@@ -108,6 +110,11 @@ public:
 	const Type* const object;
 	const Type* const tmp_object;
 	const Type* const array;
+	const Type* const tmp_array;
+	const Type* const const_array;
+	const Type* const empty_array;
+	const Type* const tmp_empty_array;
+	const Type* const const_empty_array;
 	const Type* const set;
 
 	const TypeMutator* const change_value_mutator;

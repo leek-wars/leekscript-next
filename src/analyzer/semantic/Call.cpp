@@ -47,7 +47,7 @@ void Call::apply_mutators(SemanticAnalyzer* analyzer, CallableVersion& version, 
 Compiler::value Call::pre_compile_call(Compiler& c) const {
 	assert(object != nullptr);
 	if (object->isLeftValue()) {
-		if (object->type->is_mpz_ptr()) {
+		if (object->type->is_mpz_ptr() or object->type->is_fixed_array_ptr()) {
 			return ((LeftValue*) object)->compile_l(c);
 		} else {
 			return c.insn_load(((LeftValue*) object)->compile_l(c));

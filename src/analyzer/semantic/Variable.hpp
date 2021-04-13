@@ -54,6 +54,7 @@ public:
 	bool injected = false;
 	bool global = false;
 	bool loop_variable = false;
+	bool in_loop = false;
 	#if COMPILER
 	Compiler::value entry; // Entry containing the value
 	Compiler::value addr_val;

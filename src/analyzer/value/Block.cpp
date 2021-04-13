@@ -200,6 +200,13 @@ void Block::analyze(SemanticAnalyzer* analyzer) {
 		mpz_pointer = true;
 	}
 
+	if (type->is_fixed_array()) {
+		fixed_array = true;
+	}
+	if (type->is_fixed_array_ptr()) {
+		type = type->pointed();
+	}
+
 	// for (const auto& assignment : assignments) {
 	// 	assignment.first->type = assignment.second->type;
 	// }
@@ -243,6 +250,7 @@ Completion Block::autocomplete(SemanticAnalyzer& analyzer, size_t position) cons
 }
 
 Hover Block::hover(SemanticAnalyzer& analyzer, size_t position) const {
+	// assert(false);
 	for (const auto& instruction : instructions) {
 		if (not instruction->included and instruction->location().contains(position)) {
 			return instruction->hover(analyzer, position);
@@ -320,6 +328,10 @@ Compiler::value Block::compile(Compiler& c) const {
 						return c.insn_load(temporary_mpz ? val : c.insn_clone_mpz(val));
 					} else if (type->is_mpz()) {
 						return temporary_mpz ? val : c.insn_clone_mpz(val);
+					} else if (val.t->is_fixed_array_ptr()) {
+						// std::cout << "fixed array block : " << type << " " << val.t << std::endl;
+						c.comment("Move fixed array value");
+						return c.insn_move(val);
 					} else {
 						return val;
 					}

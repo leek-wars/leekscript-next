@@ -109,7 +109,7 @@ ValueSTD::ValueSTD(Environment& env) : Module(env, "Value") {
 	}, LEGACY);
 
 	operator_("+=", {
-		{env.const_any, env.const_any, env.any, ADDR((void*) ls_add_eq), THROWS, { env.convert_mutator }, true}
+		{env.const_any, env.const_any, env.any, ADDR((void*) ls_add_eq), THROWS, { env.change_value_mutator }, true}
 	}, LEGACY);
 
 	operator_("-", {
@@ -460,7 +460,7 @@ Compiler::value ValueSTD::op_store(Compiler& c, std::vector<Compiler::value> arg
 	if (not (flags & EMPTY_VARIABLE)) {
 		c.insn_delete_variable(x);
 	}
-	if (ny.t->is_mpz_ptr()) {
+	if (ny.t->is_mpz_ptr() or ny.t->is_fixed_array_ptr()) {
 		c.insn_store(x, c.insn_load(ny));
 	} else {
 		c.insn_store(x, ny);

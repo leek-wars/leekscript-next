@@ -1,0 +1,20 @@
+class Vector {
+	int x
+	int y
+	int z
+}
+
+class Vector<T extends Number> {
+	T x = 0
+	T y = 0
+	T z = 0
+}
+
+const v = new Vector<Real>(1.5, 2.5, 4.5)	// v is only local so no need to allocate it on the heap, stack will do the job
+print(v.x, v.y, v.z)
+
+const v2 = v // no copy
+const v3 = @v // explicit by reference
+const v4 = +v // explicit copy
+
+// v destroyed

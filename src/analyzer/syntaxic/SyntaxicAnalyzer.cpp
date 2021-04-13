@@ -698,8 +698,8 @@ Value* SyntaxicAnalyzer::eatSimpleExpression(Block* block, bool pipe_opened, boo
 
 	while (t->type == TokenType::OPEN_BRACKET || t->type == TokenType::OPEN_PARENTHESIS || t->type == TokenType::DOT) {
 
-		// The array access, function call and object access keyword must be directly after the value
-		if (t->location.start.column != last_character + last_size) {
+		// The array access and object access keyword must be directly after the value
+		if (t->type != TokenType::OPEN_PARENTHESIS and t->location.start.column != last_character + last_size) {
 			break;
 		}
 
@@ -987,6 +987,7 @@ Value* SyntaxicAnalyzer::eatLambdaOrParenthesisExpression(Block* block, bool pip
 		eat(TokenType::CLOSING_PARENTHESIS);
 		return ex;
 	}
+	LOG(t->location.start.line, (int) t->type);
 	auto ident = eatIdent();
 	// var
 	if (t->type == TokenType::EQUAL) {
@@ -1088,6 +1089,7 @@ Value* SyntaxicAnalyzer::eatLambdaContinue(Block* block, bool parenthesis, Ident
 	auto token = eat_get_virtual(TokenType::ARROW);
 	l->token = token;
 	l->body = std::make_unique<Block>(env, get_null_token(), get_null_token(), true);
+	LOG(t->location.start.line);
 	l->body->add_instruction(new ExpressionInstruction(env, std::unique_ptr<Value>(eatExpression(l->body.get(), false, false, nullptr, comma_list))));
 	if (parenthesis) {
 		eat(TokenType::CLOSING_PARENTHESIS);
@@ -1337,14 +1339,30 @@ Instruction* SyntaxicAnalyzer::eatFor(Block* block) {
 	// Foreach:
 	// for v in || for var v in || for k, v in
 	// for var k, v in || for k, var v in || for var k, var v in
-	auto t1 = t->type, t2 = nt->type, t3 = nextTokenAt(2)->type, t4 = nextTokenAt(3)->type, t5 = nextTokenAt(4)->type, t6 = nextTokenAt(5)->type;
-	auto var = TokenType::VAR, let = TokenType::LET, ident = TokenType::IDENT, comma = TokenType::COMMA, colon = TokenType::COLON, in = TokenType::IN;
-	bool is_foreach = (t1 == ident and t2 == in)
+	auto t1 = t->type, t2 = nt->type, t3 = nextTokenAt(2)->type, t4 = nextTokenAt(3)->type, t5 = nextTokenAt(4)->type, t6 = nextTokenAt(5)->type, t7 = nextTokenAt(6)->type;
+	auto var = TokenType::VAR, let = TokenType::LET, ident = TokenType::IDENT, comma = TokenType::COMMA, colon = TokenType::COLON, in = TokenType::IN, arobase = TokenType::AROBASE;
+	bool is_foreach =
+		// for v in
+		(t1 == ident and t2 == in)
+		// for var v in
 		or ((t1 == var or t1 == let) and t2 == ident and t3 == in)
+		// for k : v in
 		or (t1 == ident and (t2 == comma or t2 == colon) and t3 == ident and t4 == in)
+		// for var k : v in
 		or ((t1 == var or t1 == let) and t2 == ident and (t3 == comma or t3 == colon) and t4 == ident and t5 == in)
+		// for k : var v in
 		or (t1 == ident and (t2 == comma or t2 == colon) and (t3 == var or t3 == let) and t4 == ident and t5 == in)
-		or ((t1 == var or t1 == let) and t2 == ident and (t3 == comma or t3 == colon) and (t4 == var or t4 == let) and t5 == ident and t6 == in);
+		// for var k : var v in
+		or ((t1 == var or t1 == let) and t2 == ident and (t3 == comma or t3 == colon) and (t4 == var or t4 == let) and t5 == ident and t6 == in)
+		// for @k :
+		or (t1 == arobase and t2 == ident and (t3 == colon or t3 == in))
+		// for var @k :
+		or ((t1 == var or t1 == let) and t2 == arobase and t3 == ident and (t4 == colon or t4 == in))
+		// for k : var @v in
+		or (t1 == ident and (t2 == comma or t2 == colon) and (t3 == var or t3 == let) and t4 == arobase and t5 == ident and t6 == in)
+		// for var k : var @v in
+		or ((t1 == var or t1 == let) and t2 == ident and (t3 == comma or t3 == colon) and (t4 == var or t4 == let) and t5 == arobase and t6 == ident and t7 == in)
+		;
 
 	auto current_section = block->sections.back().get();
 
@@ -1382,6 +1400,8 @@ Instruction* SyntaxicAnalyzer::eatFor(Block* block) {
 		} else {
 			auto condition = std::unique_ptr<Value>(eatExpression(init_block));
 			eat(TokenType::SEMICOLON);
+			// LOG(t->location.start.line);
+			// LOG(condition);
 			auto instruction = new ExpressionInstruction(env, std::move(condition));
 			f->condition = std::make_unique<Block>(env, get_null_token(), get_null_token());
 			f->condition->sections.front()->name = "condition";
@@ -1463,14 +1483,18 @@ Instruction* SyntaxicAnalyzer::eatFor(Block* block) {
 		f->end_section = new Section(env, "end");
 
 		if (t->type == TokenType::LET or t->type == TokenType::VAR) eat();
+		if (t->type == TokenType::AROBASE) eat(); // TODO references
 
 		if (nt->type == TokenType::COMMA || nt->type == TokenType::COLON) {
 			f->key = eatIdent();
+			// LOG("key", f->key);
 			eat();
 		}
 		if (t->type == TokenType::LET or t->type == TokenType::VAR) eat();
+		if (t->type == TokenType::AROBASE) eat(); // TODO references
 
 		f->value = eatIdent();
+		// LOG("value", f->value);
 
 		eat(TokenType::IN);
 

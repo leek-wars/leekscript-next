@@ -85,6 +85,7 @@ void Function::create_default_version(SemanticAnalyzer* analyzer, bool force) {
 	if (default_version and !force) return;
 	auto& env = analyzer->env;
 
+	// std::cout << "create default version " << body->instructions.size() << std::endl;
 	default_version = std::make_unique<FunctionVersion>(analyzer->env, std::move(body));
 	default_version->parent = this;
 
@@ -154,6 +155,7 @@ void Function::analyze(SemanticAnalyzer* analyzer) {
 
 	// Captures
 	for (auto& capture : captures) {
+		assert(capture->parent);
 		capture->type = capture->parent->type->is_polymorphic() ? capture->parent->type : analyzer->env.any;
 		// std::cout << "Function analyze capture " << capture << " " << capture->type << std::endl;
 	}
@@ -165,7 +167,7 @@ void Function::analyze(SemanticAnalyzer* analyzer) {
 	if (is_main_function) {
 		analyse_default_method(analyzer);
 	}
-	// std::cout << "Function type: " << type << std::endl;
+	// std::cout << "Function type: " << type << " instructions " << default_version->body->instructions.size() << " " << body->instructions.size() << std::endl;
 }
 
 void Function::analyse_default_method(SemanticAnalyzer* analyzer) {
@@ -188,6 +190,9 @@ void Function::create_version(SemanticAnalyzer* analyzer, const std::vector<cons
 }
 
 const Type* Function::will_take(SemanticAnalyzer* analyzer, const std::vector<const Type*>& args, int level) {
+	for (const auto& arg : args) {
+		if (arg->placeholder) return type;
+	}
 	// std::cout << "Function " << " ::will_take " << args << " level " << level << std::endl;
 	if (level == 1) {
 		auto version = args;

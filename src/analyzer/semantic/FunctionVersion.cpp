@@ -18,11 +18,30 @@
 
 namespace ls {
 
+// DIBuilder *DBuilder;
+
+// llvm::DIType *DebugInfo::getDoubleTy() {
+//   if (DblTy)
+//     return DblTy;
+
+//   DblTy = llvm::DBuilder->createBasicType("double", 64, dwarf::DW_ATE_float);
+//   return DblTy;
+// }
+
+// struct DebugInfo {
+//   llvm::DICompileUnit *TheCU;
+//   llvm::DIType *DblTy;
+
+//   llvm::DIType *getDoubleTy();
+// } KSDbgInfo;
+
 FunctionVersion::FunctionVersion(Environment& env, std::unique_ptr<Block> body) : body(std::move(body)), type(env.void_)
 #if COMPILER
 , fun(env), value(env)
 #endif
-{}
+{
+	// std::cout << "create function version " << this->body->instructions.size() << std::endl;
+}
 
 void FunctionVersion::print(std::ostream& os, int indent, PrintOptions options) const {
 	if (parent->arguments.size() != 1) {
@@ -232,6 +251,7 @@ Variable* FunctionVersion::capture(SemanticAnalyzer* analyzer, Variable* var) {
 		analyzer->enter_block(parent_version->body.get());
 		analyzer->enter_section(parent_version->body->sections.front().get());
 		auto converted_var = analyzer->update_var(var);
+		// std::cout << "converted_var " << converted_var << " parent " << (void*) converted_var->parent << std::endl;
 		converted_var->injected = true;
 		analyzer->leave_section();
 		analyzer->leave_block();
@@ -242,6 +262,7 @@ Variable* FunctionVersion::capture(SemanticAnalyzer* analyzer, Variable* var) {
 		parent->captures_map.insert({ var->name, converted_var });
 
 		auto capture = analyzer->update_var(converted_var);
+		// std::cout << "capture " << capture << " parent " << (void*) capture->parent << std::endl;
 		capture->scope = VarScope::CAPTURE;
 		captures_inside.push_back(capture);
 		// std::cout << "Capture " << capture << " " << (void*) capture << " parent " << capture->parent << " " << (void*) capture->parent << " " << (int) capture->scope << std::endl;
@@ -298,7 +319,15 @@ void FunctionVersion::create_function(Compiler& c) {
 	for (auto& t : this->type->arguments()) {
 		args.push_back(t);
 	}
-	auto function_type = Type::fun(type->return_type(), args);
+
+	auto return_type = type->return_type();
+
+	// Convert fixed array to normal array in main method
+	if (parent->is_main_function and return_type->is_fixed_array()) {
+		return_type = Type::array(return_type->element());
+	}
+
+	auto function_type = Type::fun(return_type, args);
 	auto fun_name = parent->is_main_function ? "main" : parent->name;
 	auto f = llvm::Function::Create((llvm::FunctionType*) function_type->llvm(c), llvm::Function::InternalLinkage, fun_name, c.program->module);
 	fun = { f, function_type->pointer() };
@@ -311,6 +340,25 @@ void FunctionVersion::create_function(Compiler& c) {
 		}
 		f->setPersonalityFn(personalityfn);
 	}
+
+// 	DBuilder = new llvm::DIBuilder(c.program->module);
+
+// 	llvm::KSDbgInfo.TheCU = DBuilder->createCompileUnit(
+// 		llvm::dwarf::DW_LANG_C, DBuilder->createFile("fib.ks", "."),
+// 		"Kaleidoscope Compiler", 0, "", 0);
+
+// 	llvm::DIFile *Unit = DBuilder->createFile(KSDbgInfo.TheCU.getFilename(),
+//                                     KSDbgInfo.TheCU.getDirectory());
+// 	DIScope *FContext = Unit;
+// unsigned LineNo = 0;
+// unsigned ScopeLine = 0;
+// DISubprogram *SP = DBuilder->createFunction(
+//     FContext, P.getName(), StringRef(), Unit, LineNo,
+//     CreateFunctionType(TheFunction->arg_size(), Unit),
+//     false /* internal linkage */, true /* definition */, ScopeLine,
+//     DINode::FlagPrototyped, false);
+// TheFunction->setSubprogram(SP);
+
 	// body->sections.front()->pre_compile(c);
 	block = body->sections.front()->basic_block;
 	// std::cout << "function block " << block << std::endl;
@@ -340,6 +388,9 @@ Compiler::value FunctionVersion::compile(Compiler& c, bool compile_body) {
 
 		c.enter_section(body->sections.front().get(), false);
 		// c.builder.SetInsertPoint(block);
+
+		// c.builder.SetCurrentDebugLocation(llvm::DebugLoc::get(12, 50, llvm::MDNode::get(c.getContext(), {})));
+
 
 		// Declare context vars
 		if (parent->is_main_function and c.vm->context) {
@@ -477,6 +528,10 @@ void FunctionVersion::compile_return(Compiler& c, Compiler::value v, bool delete
 		}
 		if (return_type->is_any()) {
 			v = c.insn_convert(v, return_type);
+		}
+		// Convert fixed array to normal array in main method
+		if (parent->is_main_function and return_type->is_fixed_array()) {
+			v = c.insn_convert(v, c.env.any);
 		}
 		// if (return_type->is_function()) {
 		// 	std::cout << "return type function " << std::endl;
