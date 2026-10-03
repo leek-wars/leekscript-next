@@ -1,7 +1,7 @@
 
 
 var tryRoute = (level, x, sum, maxi) => {
-	
+
     let tri = [
         [75],
         [95, 64],
@@ -20,7 +20,7 @@ var tryRoute = (level, x, sum, maxi) => {
         [ 4, 62, 98, 27, 23,  9, 70, 98, 73, 93, 38, 53, 60,  4, 23]
     ]
 	sum += tri[level][x]
-	
+
 	if (level == 14) {
 		if (sum > maxi) maxi = sum
         return maxi
@@ -29,6 +29,6 @@ var tryRoute = (level, x, sum, maxi) => {
 		return tryRoute(level + 1, x + 1, sum, maxi)
     }
 }
-	
+
 tryRoute(0, 0, 0, 0)
 

@@ -1,6 +1,6 @@
 let f = function(number) {
-	for (var k = 1; 36 * k * k - 12 * k < number; k += 1) {
-		if (number % (6 * k + 1) == 0) or (number % (6 * k - 1) == 0) {
+	for (var k = 1l; 36l * k * k - 12l * k < number; k += 1l) {
+		if (number % (6l * k + 1) == 0l) or (number % (6 * k - 1l) == 0l) {
 			return false
 		}
 	}
@@ -9,9 +9,9 @@ let f = function(number) {
 
 var c = 2
 
-for var i = 5; i < 1000000; i += 6 do
+for var i = 5l; i < 1000000l; i += 6l do
 	if f(i) c++
-	if f(i + 2) c++
+	if f(i + 2l) c++
 end
 
 c
